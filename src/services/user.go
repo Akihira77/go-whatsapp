@@ -168,3 +168,14 @@ func (us *UserService) GetMyContacts(ctx context.Context, userID string) ([]type
 
 	return users, err
 }
+
+func (us *UserService) GetUsers(ctx context.Context, myUser *types.User, query *types.UserQuerySearch) ([]types.UserContact, error) {
+	users, err := us.userRepository.GetUsers(ctx, myUser, query)
+	if err != nil {
+		slog.Error("Get all users",
+			"error", err,
+		)
+	}
+
+	return users, err
+}

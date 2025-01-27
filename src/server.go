@@ -48,6 +48,7 @@ func userRouter(api *gin.RouterGroup, requireAuth *gin.RouterGroup, userService 
 	api.POST("/users/signin", userHandler.Signin)
 	api.POST("/users/signup", userHandler.Signup)
 
+	requireAuth.GET("/users", userHandler.GetUsers)
 	requireAuth.GET("/users/my-info", userHandler.GetMyInfo)
 	requireAuth.GET("/users/contacts", userHandler.GetMyContacts)
 }

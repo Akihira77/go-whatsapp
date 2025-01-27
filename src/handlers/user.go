@@ -134,3 +134,33 @@ func (uh *UserHandler) GetMyContacts(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Retrieving your contacts", "users": users})
 }
+
+func (uh *UserHandler) GetUsers(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, 500*time.Millisecond)
+	defer cancel()
+
+	var query types.UserQuerySearch
+	if err := c.ShouldBindQuery(&query); err != nil {
+		slog.Error("Failed extract query",
+			"error", err,
+		)
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Failed retrieving query search"})
+		return
+	}
+
+	user, ok := c.MustGet("user").(*types.User)
+	if !ok {
+		slog.Error("Failed retrieve user's data from context")
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Failed retrieving your user info"})
+		return
+	}
+
+	users, err := uh.userService.GetUsers(ctx, user, &query)
+	if err != nil {
+		slog.Error("Failed retrieve user's contacts",
+			"error", err,
+		)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Retrieving all users", "users": users})
+}

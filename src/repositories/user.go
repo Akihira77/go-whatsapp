@@ -107,3 +107,20 @@ func (ur *UserRepository) FindMyContacts(ctx context.Context, userID string) ([]
 
 	return users, res.Error
 }
+
+func (ur *UserRepository) GetUsers(ctx context.Context, myUser *types.User, query *types.UserQuerySearch) ([]types.UserContact, error) {
+	var users []types.UserContact
+
+	res := ur.
+		store.
+		DB.
+		Debug().
+		WithContext(ctx).
+		Model(&types.User{}).
+		Where("id <> = ? AND first_name || ' ' || last_name LIKE ?", myUser.ID, "%"+query.Search+"%").
+		Offset((query.Page - 1) * query.Size).
+		Limit(query.Size).
+		Find(&users)
+
+	return users, res.Error
+}

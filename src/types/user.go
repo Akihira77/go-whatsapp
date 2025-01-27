@@ -58,3 +58,13 @@ type JWTClaims struct {
 	LastName  string `json:"lastName"`
 	Email     string `json:"email"`
 }
+
+type UserQuerySearch struct {
+	Search string `json:"search"`
+	Pagination
+}
+
+type Pagination struct {
+	Page int `json:"page"`
+	Size int `json:"size"`
+}
