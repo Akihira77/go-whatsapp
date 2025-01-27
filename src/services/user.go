@@ -188,7 +188,7 @@ func (us *UserService) GetMyContacts(ctx context.Context, userID, name string) (
 	return users, err
 }
 
-func (us *UserService) GetUsers(ctx context.Context, myUser *types.User, query *types.UserQuerySearch) ([]types.UserContact, error) {
+func (us *UserService) GetUsers(ctx context.Context, myUser *types.User, query *types.UserQuerySearch) ([]types.User, error) {
 	users, err := us.userRepository.GetUsers(ctx, myUser, query)
 	if err != nil {
 		slog.Error("Get all users",
@@ -226,4 +226,29 @@ func (us *UserService) UpdateUserProfile(ctx context.Context, myUser *types.User
 	err := us.userRepository.Update(ctx, myUser)
 
 	return myUser, err
+}
+
+func (us *UserService) AddContact(ctx context.Context, myUser *types.User, data *types.UserInfo) ([]types.UserContact, error) {
+	contact := types.UserContact{
+		UserOneID: myUser.ID,
+		UserTwoID: data.ID,
+		CreatedAt: time.Now(),
+	}
+
+	err := us.userRepository.AddContact(ctx, contact)
+	if err != nil {
+		slog.Error("Failed adding contact",
+			"error", err,
+		)
+		return []types.UserContact{}, err
+	}
+
+	contacts, err := us.userRepository.FindMyContacts(ctx, myUser.ID, "")
+	if err != nil {
+		slog.Error("Retrieving user's contacts",
+			"error", err,
+		)
+	}
+
+	return contacts, err
 }

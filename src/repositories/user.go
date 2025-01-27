@@ -102,14 +102,14 @@ func (ur *UserRepository) FindMyContacts(ctx context.Context, userID, name strin
 		Model(&types.UserContact{}).
 		Preload("UserOne", "id <> ?", userID).
 		Preload("UserTwo", "id <> ?", userID).
-		Where("(user_one_id = ? OR user_two_id = ?) AND (first_name || ' ' || last_name LIKE ?)", userID, userID, name).
+		Where("(user_one_id = ? OR user_two_id = ?) AND (first_name || ' ' || last_name LIKE ?)", userID, userID, "%"+name+"%").
 		Find(&users)
 
 	return users, res.Error
 }
 
-func (ur *UserRepository) GetUsers(ctx context.Context, myUser *types.User, query *types.UserQuerySearch) ([]types.UserContact, error) {
-	var users []types.UserContact
+func (ur *UserRepository) GetUsers(ctx context.Context, myUser *types.User, query *types.UserQuerySearch) ([]types.User, error) {
+	var users []types.User
 
 	res := ur.
 		store.
@@ -123,4 +123,15 @@ func (ur *UserRepository) GetUsers(ctx context.Context, myUser *types.User, quer
 		Find(&users)
 
 	return users, res.Error
+}
+
+func (ur *UserRepository) AddContact(ctx context.Context, data types.UserContact) error {
+	res := ur.
+		store.
+		DB.
+		Debug().
+		Model(&types.UserContact{}).
+		Create(&data)
+
+	return res.Error
 }

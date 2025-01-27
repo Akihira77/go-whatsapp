@@ -24,7 +24,7 @@ func NewUserHandler(userService *services.UserService) *UserHandler {
 }
 
 func (uh *UserHandler) Signup(c *gin.Context) {
-	ctx, cancel := context.WithTimeout(c, 1*time.Second)
+	ctx, cancel := context.WithTimeout(c, 2*time.Second)
 	defer cancel()
 
 	var data types.Signup
@@ -72,7 +72,7 @@ func (uh *UserHandler) Signin(c *gin.Context) {
 
 	user, jwt, err := uh.userService.Signin(ctx, &data)
 	if err != nil {
-		slog.Error("Signup",
+		slog.Error("Signin",
 			"error", err,
 		)
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Signin failed"})
@@ -167,7 +167,7 @@ func (uh *UserHandler) GetUsers(c *gin.Context) {
 }
 
 func (uh *UserHandler) UpdateUserProfile(c *gin.Context) {
-	ctx, cancel := context.WithTimeout(c, 500*time.Millisecond)
+	ctx, cancel := context.WithTimeout(c, 2*time.Second)
 	defer cancel()
 
 	user, ok := c.MustGet("user").(*types.User)
@@ -205,5 +205,38 @@ func (uh *UserHandler) UpdateUserProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Update profile success",
 		"user":    user,
+	})
+}
+
+func (uh *UserHandler) AddContact(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, 500*time.Millisecond)
+	defer cancel()
+
+	user, ok := c.MustGet("user").(*types.User)
+	if !ok {
+		slog.Error("Failed retrieve user's data from context")
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Failed retrieving your user info"})
+		return
+	}
+
+	var data types.UserInfo
+	if err := c.ShouldBind(data); err != nil {
+		slog.Error("Request payload is invalid")
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Request payload is invalid"})
+		return
+	}
+
+	users, err := uh.userService.AddContact(ctx, user, &data)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Adding contact failed",
+			"users":   users,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Adding contact success",
+		"users":   users,
 	})
 }
