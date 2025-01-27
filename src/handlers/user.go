@@ -219,14 +219,8 @@ func (uh *UserHandler) AddContact(c *gin.Context) {
 		return
 	}
 
-	var data types.UserInfo
-	if err := c.ShouldBind(data); err != nil {
-		slog.Error("Request payload is invalid")
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "Request payload is invalid"})
-		return
-	}
-
-	users, err := uh.userService.AddContact(ctx, user, &data)
+	userID := c.Param("userId")
+	users, err := uh.userService.AddContact(ctx, user, userID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": "Adding contact failed",
@@ -237,6 +231,33 @@ func (uh *UserHandler) AddContact(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Adding contact success",
+		"users":   users,
+	})
+}
+
+func (uh *UserHandler) RemoveContact(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, 500*time.Millisecond)
+	defer cancel()
+
+	user, ok := c.MustGet("user").(*types.User)
+	if !ok {
+		slog.Error("Failed retrieve user's data from context")
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Failed retrieving your user info"})
+		return
+	}
+
+	userID := c.Param("userId")
+	users, err := uh.userService.RemoveContact(ctx, user, userID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Removing contact failed",
+			"users":   users,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Removing contact success",
 		"users":   users,
 	})
 }

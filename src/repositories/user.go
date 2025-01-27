@@ -135,3 +135,15 @@ func (ur *UserRepository) AddContact(ctx context.Context, data types.UserContact
 
 	return res.Error
 }
+
+func (ur *UserRepository) RemoveContact(ctx context.Context, data types.UserContact) error {
+	res := ur.
+		store.
+		DB.
+		Debug().
+		Model(&types.UserContact{}).
+		Where("user_one_id = ? AND user_two_id = ?", data.UserOneID, data.UserTwoID).
+		Delete(&types.UserContact{})
+
+	return res.Error
+}

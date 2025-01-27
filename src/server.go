@@ -54,4 +54,6 @@ func userRouter(api *gin.RouterGroup, requireAuth *gin.RouterGroup, userService 
 	requireAuth.GET("/users/my-info", userHandler.GetMyInfo)
 	requireAuth.GET("/users/contacts", userHandler.GetMyContacts)
 	requireAuth.PATCH("/users", userHandler.UpdateUserProfile)
+	requireAuth.POST("/users/contacts/:userId", userHandler.AddContact)
+	requireAuth.DELETE("/users/contacts/:userId", userHandler.RemoveContact)
 }

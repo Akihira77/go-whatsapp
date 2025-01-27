@@ -228,16 +228,41 @@ func (us *UserService) UpdateUserProfile(ctx context.Context, myUser *types.User
 	return myUser, err
 }
 
-func (us *UserService) AddContact(ctx context.Context, myUser *types.User, data *types.UserInfo) ([]types.UserContact, error) {
+func (us *UserService) AddContact(ctx context.Context, myUser *types.User, userID string) ([]types.UserContact, error) {
 	contact := types.UserContact{
 		UserOneID: myUser.ID,
-		UserTwoID: data.ID,
+		UserTwoID: userID,
 		CreatedAt: time.Now(),
 	}
 
 	err := us.userRepository.AddContact(ctx, contact)
 	if err != nil {
 		slog.Error("Failed adding contact",
+			"error", err,
+		)
+		return []types.UserContact{}, err
+	}
+
+	contacts, err := us.userRepository.FindMyContacts(ctx, myUser.ID, "")
+	if err != nil {
+		slog.Error("Retrieving user's contacts",
+			"error", err,
+		)
+	}
+
+	return contacts, err
+}
+
+func (us *UserService) RemoveContact(ctx context.Context, myUser *types.User, userID string) ([]types.UserContact, error) {
+	contact := types.UserContact{
+		UserOneID: myUser.ID,
+		UserTwoID: userID,
+		CreatedAt: time.Now(),
+	}
+
+	err := us.userRepository.RemoveContact(ctx, contact)
+	if err != nil {
+		slog.Error("Failed removing contact",
 			"error", err,
 		)
 		return []types.UserContact{}, err
