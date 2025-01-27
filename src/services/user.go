@@ -199,6 +199,27 @@ func (us *UserService) GetUsers(ctx context.Context, myUser *types.User, query *
 	return users, err
 }
 
+func (us *UserService) UpdatePassword(ctx context.Context, user *types.User, data types.UpdatePassword) (*types.User, error) {
+	isMatch := utils.CheckPasswordHash(data.OldPassword, user.Password)
+	if !isMatch {
+		slog.Error("Password did not match")
+		return nil, fmt.Errorf("Password did not match")
+	}
+
+	hashedPassword, err := utils.HashPassword(data.NewPassword)
+	if err != nil {
+		slog.Error("Hashing password",
+			"error", err,
+		)
+		return nil, err
+	}
+
+	user.Password = hashedPassword
+	err = us.userRepository.Update(ctx, user)
+
+	return user, err
+}
+
 func (us *UserService) UpdateUserProfile(ctx context.Context, myUser *types.User, data *types.UpdateUser) (*types.User, error) {
 	myUser.FirstName = data.FirstName
 	myUser.LastName = data.LastName

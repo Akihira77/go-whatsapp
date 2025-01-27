@@ -38,6 +38,14 @@ func (uh *UserHandler) Signup(c *gin.Context) {
 		return
 	}
 
+	file, err := c.FormFile("image")
+	if err != nil && file != nil {
+		slog.Error("Failed extract image payload")
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Request payload is invalid"})
+		return
+	}
+
+	data.Image = file
 	user, jwt, err := uh.userService.Signup(ctx, &data)
 	if err != nil {
 		slog.Error("Signup",
@@ -100,7 +108,7 @@ func (uh *UserHandler) GetMyInfo(c *gin.Context) {
 
 	user, err := uh.userService.GetMyInfo(ctx, authHeaders[1])
 	if err != nil {
-		slog.Error("Signup",
+		slog.Error("Get my info",
 			"error", err,
 		)
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Failed retrieving your user info"})
@@ -166,6 +174,40 @@ func (uh *UserHandler) GetUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Retrieving all users", "users": users})
 }
 
+func (uh *UserHandler) UpdatePassword(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, 2*time.Second)
+	defer cancel()
+
+	user, ok := c.MustGet("user").(*types.User)
+	if !ok {
+		slog.Error("Failed retrieve user's data from context")
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Failed retrieving your user info"})
+		return
+	}
+
+	var data types.UpdatePassword
+	err := c.ShouldBind(&data)
+	if err != nil {
+		slog.Error("Failed extract request payload")
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Request payload is invalid"})
+		return
+	}
+
+	user, err = uh.userService.UpdatePassword(ctx, user, data)
+	if err != nil {
+		slog.Error("Failed update user's password",
+			"error", err,
+		)
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Failed updating your password"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Update profile success",
+		"user":    user,
+	})
+}
+
 func (uh *UserHandler) UpdateUserProfile(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c, 2*time.Second)
 	defer cancel()
@@ -178,7 +220,7 @@ func (uh *UserHandler) UpdateUserProfile(c *gin.Context) {
 	}
 
 	file, err := c.FormFile("image")
-	if err != nil {
+	if err != nil && file != nil {
 		slog.Error("Failed extract image payload")
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Request payload is invalid"})
 		return

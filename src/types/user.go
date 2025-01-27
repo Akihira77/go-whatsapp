@@ -46,6 +46,11 @@ type UpdateUser struct {
 	Image     *multipart.FileHeader `json:"image" form:"image"`
 }
 
+type UpdatePassword struct {
+	OldPassword string `json:"oldPassword" form:"oldPassword"`
+	NewPassword string `json:"newPassword" form:"newPassword"`
+}
+
 type UserInfo struct {
 	ID       string `json:"id"`
 	FullName string `json:"fullName"`
