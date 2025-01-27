@@ -1,6 +1,10 @@
 package types
 
-import "time"
+import (
+	"time"
+
+	"github.com/golang-jwt/jwt/v4"
+)
 
 // INFO: TABLE MODELS
 type User struct {
@@ -22,9 +26,23 @@ type UserContact struct {
 }
 
 // INFO: Data Transfer Object
+type Signup struct {
+	FirstName string `json:"firstName" form:"firstName"`
+	LastName  string `json:"lastName" form:"lastName"`
+	Email     string `json:"email" form:"email"`
+	Password  string `json:"password" form:"password"`
+	ImageUrl  []byte `json:"imageUrl" form:"imageUrl"`
+}
+
 type Signin struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+type UpdateUser struct {
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+	ImageUrl  []byte `json:"imageUrl"`
 }
 
 type UserInfo struct {
@@ -32,4 +50,11 @@ type UserInfo struct {
 	FullName string `json:"fullName"`
 	Email    string `json:"email"`
 	ImageUrl string `json:"imageUrl"`
+}
+
+type JWTClaims struct {
+	jwt.RegisteredClaims
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+	Email     string `json:"email"`
 }
