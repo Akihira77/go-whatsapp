@@ -158,8 +158,8 @@ func (us *UserService) GetMyInfo(ctx context.Context, tokenString string) (*type
 	return user, err
 }
 
-func (us *UserService) GetMyContacts(ctx context.Context, userID string) ([]types.UserContact, error) {
-	users, err := us.userRepository.FindMyContacts(ctx, userID)
+func (us *UserService) GetMyContacts(ctx context.Context, userID, name string) ([]types.UserContact, error) {
+	users, err := us.userRepository.FindMyContacts(ctx, userID, name)
 	if err != nil {
 		slog.Error("Finding my contacts",
 			"error", err,

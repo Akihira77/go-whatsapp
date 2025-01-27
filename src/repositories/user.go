@@ -91,7 +91,7 @@ func (ur *UserRepository) Delete(ctx context.Context, id string) error {
 	return res.Error
 }
 
-func (ur *UserRepository) FindMyContacts(ctx context.Context, userID string) ([]types.UserContact, error) {
+func (ur *UserRepository) FindMyContacts(ctx context.Context, userID, name string) ([]types.UserContact, error) {
 	var users []types.UserContact
 
 	res := ur.
@@ -102,7 +102,7 @@ func (ur *UserRepository) FindMyContacts(ctx context.Context, userID string) ([]
 		Model(&types.UserContact{}).
 		Preload("UserOne", "id <> ?", userID).
 		Preload("UserTwo", "id <> ?", userID).
-		Where("user_one_id = ? OR user_two_id = ?", userID, userID).
+		Where("(user_one_id = ? OR user_two_id = ?) AND (first_name || ' ' || last_name LIKE ?)", userID, userID, name).
 		Find(&users)
 
 	return users, res.Error

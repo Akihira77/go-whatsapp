@@ -125,7 +125,8 @@ func (uh *UserHandler) GetMyContacts(c *gin.Context) {
 		return
 	}
 
-	users, err := uh.userService.GetMyContacts(ctx, user.ID)
+	search := c.Query("search")
+	users, err := uh.userService.GetMyContacts(ctx, user.ID, search)
 	if err != nil {
 		slog.Error("Failed retrieve user's contacts",
 			"error", err,
