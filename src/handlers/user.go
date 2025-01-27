@@ -140,19 +140,19 @@ func (uh *UserHandler) GetUsers(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c, 500*time.Millisecond)
 	defer cancel()
 
+	user, ok := c.MustGet("user").(*types.User)
+	if !ok {
+		slog.Error("Failed retrieve user's data from context")
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Failed retrieving your user info"})
+		return
+	}
+
 	var query types.UserQuerySearch
 	if err := c.ShouldBindQuery(&query); err != nil {
 		slog.Error("Failed extract query",
 			"error", err,
 		)
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Failed retrieving query search"})
-		return
-	}
-
-	user, ok := c.MustGet("user").(*types.User)
-	if !ok {
-		slog.Error("Failed retrieve user's data from context")
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "Failed retrieving your user info"})
 		return
 	}
 
@@ -164,4 +164,46 @@ func (uh *UserHandler) GetUsers(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Retrieving all users", "users": users})
+}
+
+func (uh *UserHandler) UpdateUserProfile(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, 500*time.Millisecond)
+	defer cancel()
+
+	user, ok := c.MustGet("user").(*types.User)
+	if !ok {
+		slog.Error("Failed retrieve user's data from context")
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Failed retrieving your user info"})
+		return
+	}
+
+	file, err := c.FormFile("image")
+	if err != nil {
+		slog.Error("Failed extract image payload")
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Request payload is invalid"})
+		return
+	}
+
+	var data types.UpdateUser
+	err = c.ShouldBind(&data)
+	if err != nil {
+		slog.Error("Failed extract request payload")
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Request payload is invalid"})
+		return
+	}
+
+	data.Image = file
+	user, err = uh.userService.UpdateUserProfile(ctx, user, &data)
+	if err != nil {
+		slog.Error("Failed update user's profile",
+			"error", err,
+		)
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Failed updating your profile"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Update profile success",
+		"user":    user,
+	})
 }

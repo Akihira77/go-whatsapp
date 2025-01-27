@@ -32,13 +32,32 @@ func (us *UserService) Signup(ctx context.Context, data *types.Signup) (*types.U
 		return nil, "", err
 	}
 
+	var fileByte []byte
+	if data.Image != nil {
+		dst, err := utils.GetUploadDestination()
+		if err != nil {
+			slog.Error("Determine upload destination",
+				"error", err,
+			)
+			return nil, "", err
+		}
+
+		fileByte, err = utils.SaveUploadedFile(ctx, data.Image, dst)
+		if err != nil {
+			slog.Error("Saving uploaded file",
+				"error", err,
+			)
+			return nil, "", err
+		}
+	}
+
 	user := types.User{
 		ID:        ulid.Make().String(),
 		FirstName: data.FirstName,
 		LastName:  data.LastName,
 		Email:     data.Email,
 		Password:  hashedPassword,
-		ImageUrl:  data.ImageUrl,
+		ImageUrl:  fileByte,
 		CreatedAt: time.Now(),
 	}
 
@@ -178,4 +197,33 @@ func (us *UserService) GetUsers(ctx context.Context, myUser *types.User, query *
 	}
 
 	return users, err
+}
+
+func (us *UserService) UpdateUserProfile(ctx context.Context, myUser *types.User, data *types.UpdateUser) (*types.User, error) {
+	myUser.FirstName = data.FirstName
+	myUser.LastName = data.LastName
+
+	var fileByte []byte
+	if data.Image != nil {
+		dst, err := utils.GetUploadDestination()
+		if err != nil {
+			slog.Error("Determine upload destination",
+				"error", err,
+			)
+			return nil, err
+		}
+
+		fileByte, err = utils.SaveUploadedFile(ctx, data.Image, dst)
+		if err != nil {
+			slog.Error("Saving uploaded file",
+				"error", err,
+			)
+			return nil, err
+		}
+	}
+
+	myUser.ImageUrl = fileByte
+	err := us.userRepository.Update(ctx, myUser)
+
+	return myUser, err
 }

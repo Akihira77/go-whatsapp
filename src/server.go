@@ -15,7 +15,9 @@ import (
 )
 
 func NewHttpServer(port string, store *store.Store) error {
-	router := gin.Default()
+	router := gin.Default(func(e *gin.Engine) {
+		e.MaxMultipartMemory = 2 << 20 // 20 MiB
+	})
 
 	mainRouter(router, store)
 
@@ -51,4 +53,5 @@ func userRouter(api *gin.RouterGroup, requireAuth *gin.RouterGroup, userService 
 	requireAuth.GET("/users", userHandler.GetUsers)
 	requireAuth.GET("/users/my-info", userHandler.GetMyInfo)
 	requireAuth.GET("/users/contacts", userHandler.GetMyContacts)
+	requireAuth.PATCH("/users", userHandler.UpdateUserProfile)
 }
