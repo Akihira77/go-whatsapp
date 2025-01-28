@@ -1,7 +1,6 @@
 package types
 
 import (
-	"mime/multipart"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -36,11 +35,10 @@ type UserContact struct {
 
 // INFO: Data Transfer Object
 type Signup struct {
-	FirstName string                `json:"firstName" form:"firstName" validate:"required"`
-	LastName  string                `json:"lastName" form:"lastName" validate:"required"`
-	Email     string                `json:"email" form:"email" validate:"required"`
-	Password  string                `json:"password" form:"password" validate:"required"`
-	Image     *multipart.FileHeader `json:"image" form:"image"`
+	FirstName string `json:"firstName" form:"firstName" validate:"required"`
+	LastName  string `json:"lastName" form:"lastName" validate:"required"`
+	Email     string `json:"email" form:"email" validate:"required"`
+	Password  string `json:"password" form:"password" validate:"required"`
 }
 
 type Signin struct {
@@ -49,9 +47,8 @@ type Signin struct {
 }
 
 type UpdateUser struct {
-	FirstName string                `json:"firstName" form:"firstName"`
-	LastName  string                `json:"lastName" form:"lastName"`
-	Image     *multipart.FileHeader `json:"image" form:"image"`
+	FirstName string `json:"firstName" form:"firstName"`
+	LastName  string `json:"lastName" form:"lastName"`
 }
 
 type UpdatePassword struct {

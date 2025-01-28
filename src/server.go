@@ -54,6 +54,9 @@ func mainRouter(router *gin.Engine, store *store.Store) {
 func pageRouter(router *gin.Engine, authenticatedPage *gin.RouterGroup, userService *services.UserService) {
 	pageHandler := handlers.NewPageHandler(userService)
 	authenticatedPage.GET("/", pageHandler.RenderHome)
+	authenticatedPage.GET("/users/profile", pageHandler.RenderMyProfile)
+	authenticatedPage.GET("/users/edit", pageHandler.RenderEditProfile)
+	authenticatedPage.GET("/users/change-password", pageHandler.RenderChangePassword)
 
 	router.GET("/signup", pageHandler.RenderSignup)
 	router.GET("/signin", pageHandler.RenderSignin)
@@ -65,6 +68,7 @@ func userRouter(api *gin.RouterGroup, authenticatedApi *gin.RouterGroup, userSer
 	api.POST("/users/signup", userHandler.Signup)
 
 	authenticatedApi.GET("/users", userHandler.GetUsers)
+	authenticatedApi.GET("/users/my-image", userHandler.GetMyImageProfile)
 	authenticatedApi.GET("/users/my-info", userHandler.GetMyInfo)
 	authenticatedApi.GET("/users/contacts", userHandler.GetMyContacts)
 	authenticatedApi.PATCH("/users", userHandler.UpdateUserProfile)

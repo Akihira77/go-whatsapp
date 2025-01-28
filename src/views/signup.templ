@@ -14,6 +14,9 @@ templ Signup() {
 					<div class="space-y-2">
 						<label for="image" class="block text-sm font-medium text-gray-700">Profile Image</label>
 						<input type="file" id="image" name="image" accept="image/*" class="cursor-pointer w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+						<div id="imagePreview" class="mt-2 hidden">
+							<img id="previewImage" src="#" alt="Profile Image Preview" class="shadow-md w-32 h-32 object-cover rounded-full mx-auto"/>
+						</div>
 					</div>
 					<div class="grid grid-cols-2 gap-4">
 						<div class="space-y-2">
@@ -43,5 +46,22 @@ templ Signup() {
 				</div>
 			</div>
 		</div>
+		<script>
+        const profileImageInput = document.getElementById('image');
+        const imagePreview = document.getElementById('imagePreview');
+        const previewImage = document.getElementById('previewImage');
+
+        profileImageInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImage.src = e.target.result;
+                    imagePreview.classList.remove('hidden');
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+    </script>
 	}
 }

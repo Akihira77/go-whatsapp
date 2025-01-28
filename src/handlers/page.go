@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"log/slog"
-
 	"github.com/Akihira77/go_whatsapp/src/services"
 	"github.com/Akihira77/go_whatsapp/src/views"
 	"github.com/gin-gonic/gin"
@@ -27,6 +25,19 @@ func (ph *PageHandler) RenderSignin(c *gin.Context) {
 }
 
 func (ph *PageHandler) RenderHome(c *gin.Context) {
-	slog.Info("Render home")
 	views.Home().Render(c, c.Writer)
+}
+
+func (ph *PageHandler) RenderMyProfile(c *gin.Context) {
+	c.Header("HX-Redirect", "/users/profile")
+
+	views.MyProfile().Render(c, c.Writer)
+}
+
+func (ph *PageHandler) RenderEditProfile(c *gin.Context) {
+	views.EditUser().Render(c, c.Writer)
+}
+
+func (ph *PageHandler) RenderChangePassword(c *gin.Context) {
+	views.ChangePassword().Render(c, c.Writer)
 }

@@ -13,7 +13,7 @@ import (
 func GetUploadDestination() (string, error) {
 	path, err := os.Getwd()
 
-	return fmt.Sprintf("%s/storage/upload", path), err
+	return fmt.Sprintf("%s/storage/uploads/", path), err
 }
 
 func SaveUploadedFile(ctx context.Context, file *multipart.FileHeader, dst string) ([]byte, error) {
@@ -27,7 +27,7 @@ func SaveUploadedFile(ctx context.Context, file *multipart.FileHeader, dst strin
 		return nil, err
 	}
 
-	out, err := os.Create(dst)
+	out, err := os.Create(dst + file.Filename)
 	if err != nil {
 		return nil, err
 	}

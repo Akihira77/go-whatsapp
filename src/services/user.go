@@ -3,7 +3,9 @@ package services
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
+	"mime/multipart"
 	"time"
 
 	"github.com/Akihira77/go_whatsapp/src/repositories"
@@ -22,7 +24,7 @@ func NewUserService(userRepository *repositories.UserRepository) *UserService {
 	}
 }
 
-func (us *UserService) Signup(ctx context.Context, data *types.Signup) (*types.User, string, error) {
+func (us *UserService) Signup(ctx context.Context, data *types.Signup, image multipart.File) (*types.User, string, error) {
 	hashedPassword, err := utils.HashPassword(data.Password)
 	if err != nil {
 		slog.Error("Hashing password",
@@ -33,16 +35,8 @@ func (us *UserService) Signup(ctx context.Context, data *types.Signup) (*types.U
 	}
 
 	var fileByte []byte
-	if data.Image != nil {
-		dst, err := utils.GetUploadDestination()
-		if err != nil {
-			slog.Error("Determine upload destination",
-				"error", err,
-			)
-			return nil, "", err
-		}
-
-		fileByte, err = utils.SaveUploadedFile(ctx, data.Image, dst)
+	if image != nil {
+		fileByte, err = io.ReadAll(image)
 		if err != nil {
 			slog.Error("Saving uploaded file",
 				"error", err,
@@ -220,30 +214,22 @@ func (us *UserService) UpdatePassword(ctx context.Context, user *types.User, dat
 	return user, err
 }
 
-func (us *UserService) UpdateUserProfile(ctx context.Context, myUser *types.User, data *types.UpdateUser) (*types.User, error) {
+func (us *UserService) UpdateUserProfile(ctx context.Context, myUser *types.User, data *types.UpdateUser, image multipart.File) (*types.User, error) {
 	myUser.FirstName = data.FirstName
 	myUser.LastName = data.LastName
 
-	var fileByte []byte
-	if data.Image != nil {
-		dst, err := utils.GetUploadDestination()
-		if err != nil {
-			slog.Error("Determine upload destination",
-				"error", err,
-			)
-			return nil, err
-		}
-
-		fileByte, err = utils.SaveUploadedFile(ctx, data.Image, dst)
+	if image != nil {
+		fileByte, err := io.ReadAll(image)
 		if err != nil {
 			slog.Error("Saving uploaded file",
 				"error", err,
 			)
 			return nil, err
 		}
+
+		myUser.ImageUrl = fileByte
 	}
 
-	myUser.ImageUrl = fileByte
 	err := us.userRepository.Update(ctx, myUser)
 
 	return myUser, err
