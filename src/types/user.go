@@ -7,15 +7,23 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
+type UserStatus string
+
+const (
+	ONLINE  UserStatus = "ONLINE"
+	OFFLINE UserStatus = "OFFLINE"
+)
+
 // INFO: TABLE MODELS
 type User struct {
-	ID        string    `json:"id" gorm:"primaryKey"`
-	FirstName string    `json:"firstName"`
-	LastName  string    `json:"lastName"`
-	Email     string    `json:"email"`
-	Password  string    `json:"password"`
-	ImageUrl  []byte    `json:"imageUrl"`
-	CreatedAt time.Time `json:"createdAt"`
+	ID        string     `json:"id" gorm:"primaryKey"`
+	FirstName string     `json:"firstName"`
+	LastName  string     `json:"lastName"`
+	Email     string     `json:"email"`
+	Password  string     `json:"password"`
+	ImageUrl  []byte     `json:"imageUrl"`
+	Status    UserStatus `json:"userStatus"`
+	CreatedAt time.Time  `json:"createdAt"`
 }
 
 type UserContact struct {
@@ -28,16 +36,16 @@ type UserContact struct {
 
 // INFO: Data Transfer Object
 type Signup struct {
-	FirstName string                `json:"firstName" form:"firstName"`
-	LastName  string                `json:"lastName" form:"lastName"`
-	Email     string                `json:"email" form:"email"`
-	Password  string                `json:"password" form:"password"`
+	FirstName string                `json:"firstName" form:"firstName" validate:"required"`
+	LastName  string                `json:"lastName" form:"lastName" validate:"required"`
+	Email     string                `json:"email" form:"email" validate:"required"`
+	Password  string                `json:"password" form:"password" validate:"required"`
 	Image     *multipart.FileHeader `json:"image" form:"image"`
 }
 
 type Signin struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email    string `json:"email" form:"email" validate:"required"`
+	Password string `json:"password" form:"password" validate:"required"`
 }
 
 type UpdateUser struct {
@@ -47,8 +55,8 @@ type UpdateUser struct {
 }
 
 type UpdatePassword struct {
-	OldPassword string `json:"oldPassword" form:"oldPassword"`
-	NewPassword string `json:"newPassword" form:"newPassword"`
+	OldPassword string `json:"oldPassword" form:"oldPassword" validate:"required"`
+	NewPassword string `json:"newPassword" form:"newPassword" validate:"required"`
 }
 
 type UserInfo struct {

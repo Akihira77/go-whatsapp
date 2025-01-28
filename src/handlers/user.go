@@ -2,14 +2,13 @@ package handlers
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/Akihira77/go_whatsapp/src/services"
 	"github.com/Akihira77/go_whatsapp/src/types"
+	"github.com/Akihira77/go_whatsapp/src/views"
 	"github.com/gin-gonic/gin"
 )
 
@@ -55,12 +54,12 @@ func (uh *UserHandler) Signup(c *gin.Context) {
 		return
 	}
 
-	c.Header("Authorization", fmt.Sprintf("Bearer %s", jwt))
 	c.Set("user", user)
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "Signup success",
-		"user":    user,
-	})
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie("token", jwt, 60*60*24, "/", "localhost", true, true)
+	c.Header("HX-Redirect", "/")
+
+	views.Home().Render(c, c.Writer)
 }
 
 func (uh *UserHandler) Signin(c *gin.Context) {
@@ -87,26 +86,28 @@ func (uh *UserHandler) Signin(c *gin.Context) {
 		return
 	}
 
-	c.Header("Authorization", fmt.Sprintf("Bearer %s", jwt))
 	c.Set("user", user)
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Signin success",
-		"user":    user,
-	})
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie("token", jwt, 60*60*24, "/", "localhost", true, true)
+	c.Header("HX-Redirect", "/")
+
+	views.Home().Render(c, c.Writer)
 }
 
 func (uh *UserHandler) GetMyInfo(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c, 500*time.Millisecond)
 	defer cancel()
 
-	authHeaders := strings.Split(c.GetHeader("Authorization"), " ")
-	if len(authHeaders) < 2 || authHeaders[1] == "" {
-		slog.Error("User unauthorized")
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "User unauthorized"})
+	token, err := c.Cookie("token")
+	if err != nil {
+		slog.Error("Cookie not found",
+			"error", err,
+		)
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Cookie not found"})
 		return
 	}
 
-	user, err := uh.userService.GetMyInfo(ctx, authHeaders[1])
+	user, err := uh.userService.GetMyInfo(ctx, token)
 	if err != nil {
 		slog.Error("Get my info",
 			"error", err,

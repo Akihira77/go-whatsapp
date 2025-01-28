@@ -3,26 +3,30 @@ package middlewares
 import (
 	"log/slog"
 	"net/http"
-	"strings"
 
 	"github.com/Akihira77/go_whatsapp/src/services"
 	"github.com/gin-gonic/gin"
 )
 
 func AuthOnly(c *gin.Context, userService *services.UserService) {
-	authHeaders := strings.Split(c.GetHeader("Authorization"), " ")
-	if len(authHeaders) < 2 || authHeaders[1] == "" {
-		slog.Error("User unauthorized")
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "User unauthorized"})
+	token, err := c.Cookie("token")
+	if err != nil || token == "" {
+		slog.Error("User unauthorized",
+			"error", err,
+			"token", token,
+		)
+		c.Redirect(http.StatusFound, "/signin")
+		c.Abort()
 		return
 	}
 
-	user, err := userService.GetMyInfo(c, authHeaders[1])
+	user, err := userService.GetMyInfo(c, token)
 	if err != nil {
 		slog.Error("Signup",
 			"error", err,
 		)
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Failed retrieving your user info"})
+		c.Redirect(http.StatusFound, "/signin")
+		c.Abort()
 		return
 	}
 

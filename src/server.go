@@ -34,27 +34,41 @@ func NewHttpServer(port string, store *store.Store) error {
 }
 
 func mainRouter(router *gin.Engine, store *store.Store) {
+	router.Static("/public", "./public")
+
 	userRepository := repositories.NewUserRepository(store)
 	userService := services.NewUserService(userRepository)
 
 	api := router.Group("/api")
-	requireAuth := api.Group("", func(c *gin.Context) {
+	authenticatedApi := api.Group("", func(c *gin.Context) {
+		middlewares.AuthOnly(c, userService)
+	})
+	authenticatedPage := router.Group("", func(c *gin.Context) {
 		middlewares.AuthOnly(c, userService)
 	})
 
-	userRouter(api, requireAuth, userService)
+	pageRouter(router, authenticatedPage, userService)
+	userRouter(api, authenticatedApi, userService)
 }
 
-func userRouter(api *gin.RouterGroup, requireAuth *gin.RouterGroup, userService *services.UserService) {
+func pageRouter(router *gin.Engine, authenticatedPage *gin.RouterGroup, userService *services.UserService) {
+	pageHandler := handlers.NewPageHandler(userService)
+	authenticatedPage.GET("/", pageHandler.RenderHome)
+
+	router.GET("/signup", pageHandler.RenderSignup)
+	router.GET("/signin", pageHandler.RenderSignin)
+}
+
+func userRouter(api *gin.RouterGroup, authenticatedApi *gin.RouterGroup, userService *services.UserService) {
 	userHandler := handlers.NewUserHandler(userService)
 	api.POST("/users/signin", userHandler.Signin)
 	api.POST("/users/signup", userHandler.Signup)
 
-	requireAuth.GET("/users", userHandler.GetUsers)
-	requireAuth.GET("/users/my-info", userHandler.GetMyInfo)
-	requireAuth.GET("/users/contacts", userHandler.GetMyContacts)
-	requireAuth.PATCH("/users", userHandler.UpdateUserProfile)
-	requireAuth.PATCH("/users/change-password", userHandler.UpdatePassword)
-	requireAuth.POST("/users/contacts/:userId", userHandler.AddContact)
-	requireAuth.DELETE("/users/contacts/:userId", userHandler.RemoveContact)
+	authenticatedApi.GET("/users", userHandler.GetUsers)
+	authenticatedApi.GET("/users/my-info", userHandler.GetMyInfo)
+	authenticatedApi.GET("/users/contacts", userHandler.GetMyContacts)
+	authenticatedApi.PATCH("/users", userHandler.UpdateUserProfile)
+	authenticatedApi.PATCH("/users/change-password", userHandler.UpdatePassword)
+	authenticatedApi.POST("/users/contacts/:userId", userHandler.AddContact)
+	authenticatedApi.DELETE("/users/contacts/:userId", userHandler.RemoveContact)
 }
