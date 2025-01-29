@@ -22,7 +22,7 @@ func isAuthenticated(ctx context.Context) bool {
 	return true
 }
 
-templ Home() {
+templ Home(msgs []types.Message) {
 	@Page() {
 		if isAuthenticated(ctx) {
 			<div class="bg-gray-100 h-screen flex">
@@ -35,21 +35,24 @@ templ Home() {
 					>
 						<div class="p-3">
 							<div class="relative">
-								<input type="text" placeholder="Search or start new chat" class="w-full py-2 px-4 bg-gray-100 rounded-full text-sm focus:outline-none"/>
+								<input
+									name="search"
+									type="search"
+									placeholder="Search or start new chat"
+									class="w-full py-2 px-4 bg-gray-100 rounded-full text-sm focus:outline-none"
+									placeholder="Search chat by user name..."
+									hx-get="/messages"
+									hx-trigger="input changed delay:500ms, keyup[key=='Enter'], search"
+									hx-headers='{"X-Page-Query": "true"}'
+									hx-target="#chat__list"
+									hx-push-url="true"
+									hx-swap="outerHTML"
+								/>
 								<i class="fas fa-search absolute right-3 top-2 text-gray-500"></i>
 							</div>
 						</div>
-						<div class="overflow-y-auto h-[calc(100vh-120px)]">
-							<div class="flex items-center p-3 hover:bg-gray-100 cursor-pointer">
-								<img src="/api/users/my-image" alt="Contact" class="w-12 h-12 rounded-full mr-3"/>
-								<div class="flex-1">
-									<h3 class="text-sm font-semibold">John Doe</h3>
-									<p class="text-xs text-gray-600 truncate">Hey, how are you?</p>
-								</div>
-								<span class="text-xs text-gray-500">10:30 AM</span>
-							</div>
-						</div>
 					</div>
+					@components.ChatList(msgs)
 				</div>
 				<!-- Main Content -->
 				<div

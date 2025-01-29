@@ -3,7 +3,8 @@ package components
 templ HomeLeftSidebar() {
 	<div class="w-16 bg-gray-900 flex flex-col items-center py-4">
 		<button
-			class="cursor-pointer w-12 h-12 rounded-full bg-gray-700 text-white flex items-center justify-center mb-4"
+			id="home"
+			class="menu cursor-pointer w-12 h-12 rounded-full text-white flex items-center justify-center mb-4 bg-gray-800"
 			hx-get="/"
 			hx-push-url="true"
 			hx-target="#body"
@@ -11,31 +12,41 @@ templ HomeLeftSidebar() {
 			<i class="fas fa-comment-alt text-xl"></i>
 		</button>
 		<button
-			class="cursor-pointer w-12 h-12 rounded-full bg-gray-800 text-white flex items-center justify-center mb-4"
-			hx-get="/contacts"
+			id="users"
+			class="menu cursor-pointer w-12 h-12 rounded-full text-white flex items-center justify-center mb-4 bg-gray-800"
+			hx-get="/users"
 			hx-push-url="true"
 			hx-target="#body"
 		>
 			<i class="fas fa-user text-xl"></i>
 		</button>
-		<a
-			class="cursor-pointer w-12 h-12 rounded-full bg-gray-800 text-white flex items-center justify-center mb-4"
-			href="/groups"
+		<button
+			id="groups"
+			class="menu cursor-pointer w-12 h-12 rounded-full text-white flex items-center justify-center mb-4 bg-gray-800"
+			hx-get="/groups"
+			hx-push-url="true"
+			hx-target="#body"
 		>
 			<i class="fas fa-users text-xl"></i>
-		</a>
-		<a
-			class="cursor-pointer w-12 h-12 rounded-full bg-gray-800 text-white flex items-center justify-center mb-4"
-			href="/stories"
+		</button>
+		<button
+			id="stories"
+			class="menu cursor-pointer w-12 h-12 rounded-full text-white flex items-center justify-center mb-4 bg-gray-800"
+			hx-get="/stories"
+			hx-push-url="true"
+			hx-target="#body"
 		>
 			<i class="fas fa-circle-notch text-xl"></i>
-		</a>
-		<a
-			class="cursor-pointer w-12 h-12 rounded-full bg-gray-800 text-white flex items-center justify-center"
-			href="/others"
+		</button>
+		<button
+			id="others"
+			class="menu cursor-pointer w-12 h-12 rounded-full text-white flex items-center justify-center mb-4 bg-gray-800"
+			hx-get="/others"
+			hx-push-url="true"
+			hx-target="#body"
 			disabled
 		>
 			<i class="fas fa-ellipsis-h text-xl"></i>
-		</a>
+		</button>
 	</div>
 }

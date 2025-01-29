@@ -55,6 +55,7 @@ func pageRouter(router *gin.Engine, authenticatedPage *gin.RouterGroup, userServ
 	pageHandler := handlers.NewPageHandler(userService)
 	authenticatedPage.GET("/", pageHandler.RenderHome)
 	authenticatedPage.GET("/contacts", pageHandler.RenderMyContacts)
+	authenticatedPage.GET("/users", pageHandler.RenderUsers)
 	authenticatedPage.GET("/users/profile", pageHandler.RenderMyProfile)
 	authenticatedPage.GET("/users/edit", pageHandler.RenderEditProfile)
 	authenticatedPage.GET("/users/change-password", pageHandler.RenderChangePassword)

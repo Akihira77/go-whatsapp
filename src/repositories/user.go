@@ -134,7 +134,7 @@ func (ur *UserRepository) GetUsers(ctx context.Context, myUser *types.User, quer
 		Debug().
 		WithContext(ctx).
 		Model(&types.User{}).
-		Where("id <> = ? AND first_name || ' ' || last_name LIKE ?", myUser.ID, "%"+query.Search+"%").
+		Where("id <> ? AND (first_name || ' ' || last_name) LIKE ?", myUser.ID, "%"+query.Search+"%").
 		Offset((query.Page - 1) * query.Size).
 		Limit(query.Size).
 		Find(&users)

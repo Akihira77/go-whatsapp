@@ -71,11 +71,11 @@ type JWTClaims struct {
 }
 
 type UserQuerySearch struct {
-	Search string `json:"search"`
+	Search string `json:"search" form:"search"`
 	Pagination
 }
 
 type Pagination struct {
-	Page int `json:"page"`
-	Size int `json:"size"`
+	Page int `json:"page" form:"page"`
+	Size int `json:"size" form:"size"`
 }
