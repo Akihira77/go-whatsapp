@@ -1,0 +1,25 @@
+package components
+
+import (
+	"github.com/Akihira77/go_whatsapp/src/types"
+	"github.com/Akihira77/go_whatsapp/src/utils"
+	"time"
+)
+
+templ ChatList(messages []types.Message) {
+	<div
+		id="chat__list"
+		class="overflow-y-auto h-[calc(100vh-120px)]"
+	>
+		for _, m := range messages {
+			<div class="flex items-center p-3 hover:bg-gray-100 cursor-pointer">
+				<img src="/api/users/my-image" alt="Contact" class="w-12 h-12 rounded-full mr-3"/>
+				<div class="flex-1">
+					<h3 class="text-sm font-semibold">{ utils.GetFullName(m.Sender) }</h3>
+					<p class="text-xs text-gray-600 truncate">{ m.Content }</p>
+				</div>
+				<span class="text-xs text-gray-500">{ m.Sender.CreatedAt.Format(time.RFC822) }</span>
+			</div>
+		}
+	</div>
+}

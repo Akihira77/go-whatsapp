@@ -23,6 +23,8 @@ func NewStore() *Store {
 		log.Fatalf("Error connecting to database: %v", err)
 	}
 
+	db.Exec("PRAGMA foreign_keys = ON;")
+
 	sqlDB, err := db.DB()
 
 	sqlDB.SetMaxIdleConns(10)

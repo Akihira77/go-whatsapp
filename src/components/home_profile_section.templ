@@ -1,0 +1,49 @@
+package components
+
+import "github.com/Akihira77/go_whatsapp/src/types"
+
+templ ProfileSection(user *types.User) {
+	<div class="p-4 bg-gray-200 flex items-center space-x-3">
+		<div
+			class="relative cursor-pointer"
+			hx-get="/users/profile"
+		>
+			<img src="/api/users/my-image" alt="Profile" class="w-12 h-12 rounded-full object-cover"/>
+			if user.Status == types.ONLINE {
+				<div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+			} else {
+				<div class="absolute bottom-0 right-0 w-3 h-3 bg-slate-500 rounded-full border-2 border-white"></div>
+			}
+		</div>
+		<div class="flex-1 min-w-0">
+			<h2
+				class="cursor-pointer text-lg font-semibold text-gray-800 truncate"
+				hx-get="/users/profile"
+			>
+				{ user.FirstName + " " + user.LastName }
+			</h2>
+			if user.Status == types.ONLINE {
+				<p class="text-xs text-green-600">Online</p>
+			} else {
+				<p class="text-xs text-slate-600">Offline</p>
+			}
+		</div>
+		<div class="flex space-x-2 px-2">
+			<div class="relative">
+				<button id="dropdownToggle" class="cursor-pointer focus:outline-none">
+					<i class="fas fa-ellipsis-v text-gray-600"></i>
+				</button>
+				<div id="dropdownMenu" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden">
+					<button
+						class="cursor-pointer w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+						hx-post="/api/users/logout"
+						hx-confirm="Do you really want to logout from this account?"
+					>
+						<i class="fas fa-sign-out-alt mr-2"></i>
+						Logout
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+}

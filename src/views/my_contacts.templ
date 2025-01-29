@@ -1,0 +1,33 @@
+package views
+
+import (
+	"github.com/Akihira77/go_whatsapp/src/components"
+	"github.com/Akihira77/go_whatsapp/src/types"
+)
+
+templ MyContacts(user *types.User, users []types.UserContact) {
+	@Page() {
+		if isAuthenticated(ctx) {
+			<div class="bg-gray-100 h-screen flex">
+				@components.HomeLeftSidebar()
+				<!-- Existing Chat History Sidebar -->
+				<div class="w-1/4 bg-white border-r border-gray-300 flex flex-col">
+					@components.ProfileSection(user)
+					@components.ContactList(user.ID, users)
+				</div>
+				<!-- Main Content -->
+				<div
+					id="main__content"
+					class="flex-1 flex flex-col"
+				>
+					<!-- Chat Header -->
+					<div class="bg-gray-200 p-4 flex items-center"></div>
+					<!-- Chat Messages -->
+					<div class="flex-1 bg-[#e5ddd5] overflow-y-auto p-4"></div>
+					<!-- Message Input -->
+					<div class="bg-gray-200 p-4 flex items-center"></div>
+				</div>
+			</div>
+		}
+	}
+}
