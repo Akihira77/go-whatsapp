@@ -4,7 +4,7 @@ templ EditUser() {
 	@Page() {
 		if isAuthenticated(ctx) {
 			<div class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
-				<div class="bg-white rounded-lg shadow-md p-8 max-w-md w-full">
+				<div class="bg-white rounded-lg shadow-md p-4 max-w-md w-full">
 					<h2 class="text-2xl font-bold mb-6 text-center">Update Profile</h2>
 					<form
 						id="updateProfileForm"
@@ -39,48 +39,48 @@ templ EditUser() {
 						Back 
 					</button>
 				</div>
-				<script>
-                const profileImageInput = document.getElementById('image');
-                const imagePreview = document.getElementById('imagePreview');
-                const previewImage = document.getElementById('previewImage');
-
-                profileImageInput.addEventListener('change', function(event) {
-                    const file = event.target.files[0];
-                    if (file) {
-                        const reader = new FileReader();
-                        reader.onload = function(e) {
-                            previewImage.src = e.target.result;
-                            imagePreview.classList.remove('hidden');
-                        }
-                        reader.readAsDataURL(file);
-                    }
-                });
-
-                let isFormDirty = false;
-
-                document.addEventListener("DOMContentLoaded", function () {
-                    const form = document.getElementById("updateProfileForm");
-                    const inputs = form.querySelectorAll("input, textarea, select");
-
-                    inputs.forEach(input => {
-                        input.addEventListener("input", () => {
-                            isFormDirty = true;
-                        });
-                    });
-
-                    form.addEventListener("submit", () => {
-                        isFormDirty = false; // Reset state after saving
-                    });
-                });
-
-                window.addEventListener("beforeunload", function (event) {
-                    if (isFormDirty) {
-                        event.preventDefault();
-                        event.returnValue = "You have unsaved changes. Do you really want to leave?";
-                    }
-                });
-            </script>
 			</div>
+			<script>
+            const profileImageInput = document.getElementById('image');
+            const imagePreview = document.getElementById('imagePreview');
+            const previewImage = document.getElementById('previewImage');
+
+            profileImageInput.addEventListener('change', function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        previewImage.src = e.target.result;
+                        imagePreview.classList.remove('hidden');
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            let isFormDirty = false;
+
+            document.addEventListener("DOMContentLoaded", function () {
+                const form = document.getElementById("updateProfileForm");
+                const inputs = form.querySelectorAll("input, textarea, select");
+
+                inputs.forEach(input => {
+                    input.addEventListener("input", () => {
+                        isFormDirty = true;
+                    });
+                });
+
+                form.addEventListener("submit", () => {
+                    isFormDirty = false; // Reset state after saving
+                });
+            });
+
+            window.addEventListener("beforeunload", function (event) {
+                if (isFormDirty) {
+                    event.preventDefault();
+                    event.returnValue = "You have unsaved changes. Do you really want to leave?";
+                }
+            });
+        </script>
 		}
 	}
 }

@@ -31,6 +31,21 @@ func (ur *UserRepository) FindByID(ctx context.Context, id string) (*types.User,
 	return &u, res.Error
 }
 
+func (ur *UserRepository) GetUserImage(ctx context.Context, id string) (*types.User, error) {
+	var u types.User
+
+	res := ur.
+		store.
+		DB.
+		Model(&types.User{}).
+		WithContext(ctx).
+		Select("image_url").
+		Where("id = ?", id).
+		First(&u)
+
+	return &u, res.Error
+}
+
 func (ur *UserRepository) FindByEmail(ctx context.Context, email string) (*types.User, error) {
 	var u types.User
 
@@ -100,9 +115,11 @@ func (ur *UserRepository) FindMyContacts(ctx context.Context, userID, name strin
 		Debug().
 		WithContext(ctx).
 		Model(&types.UserContact{}).
-		Preload("UserOne", "id <> ?", userID).
-		Preload("UserTwo", "id <> ?", userID).
-		Where("(user_one_id = ? OR user_two_id = ?) AND (first_name || ' ' || last_name LIKE ?)", userID, userID, "%"+name+"%").
+		Where("user_one_id = ? OR user_two_id = ?", userID, userID).
+		Preload("UserOne", "id <> ? AND (first_name || ' ' || last_name) LIKE ?", userID, "%"+name+"%").
+		Preload("UserTwo", "id <> ? AND (first_name || ' ' || last_name) LIKE ?", userID, "%"+name+"%").
+		// Preload("UserOne").
+		// Preload("UserTwo").
 		Find(&users)
 
 	return users, res.Error

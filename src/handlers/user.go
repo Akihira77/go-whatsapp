@@ -22,6 +22,15 @@ func NewUserHandler(userService *services.UserService) *UserHandler {
 	}
 }
 
+func (uh *UserHandler) Logout(c *gin.Context) {
+	c.Set("user", nil)
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie("token", "", -1, "/", "localhost", true, true)
+	c.Header("HX-Redirect", "/signin")
+
+	views.Signin().Render(c, c.Writer)
+}
+
 func (uh *UserHandler) Signup(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c, 2*time.Second)
 	defer cancel()
@@ -97,6 +106,19 @@ func (uh *UserHandler) Signin(c *gin.Context) {
 func (uh *UserHandler) GetMyImageProfile(c *gin.Context) {
 	user, ok := c.MustGet("user").(*types.User)
 	if !ok {
+		slog.Error("Failed retrieve user's data from context")
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Failed retrieving your user info"})
+		return
+	}
+
+	c.Header("Content-Type", "image/png")
+	c.Writer.Write(user.ImageUrl)
+}
+
+func (uh *UserHandler) GetUserImageProfile(c *gin.Context) {
+	userId := c.Param("userId")
+	user, err := uh.userService.GetUserInfo(c, userId)
+	if err != nil {
 		slog.Error("Failed retrieve user's data from context")
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Failed retrieving your user info"})
 		return

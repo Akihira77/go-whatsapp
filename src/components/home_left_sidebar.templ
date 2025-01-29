@@ -1,0 +1,41 @@
+package components
+
+templ HomeLeftSidebar() {
+	<div class="w-16 bg-gray-900 flex flex-col items-center py-4">
+		<button
+			class="cursor-pointer w-12 h-12 rounded-full bg-gray-700 text-white flex items-center justify-center mb-4"
+			hx-get="/"
+			hx-push-url="true"
+			hx-target="#body"
+		>
+			<i class="fas fa-comment-alt text-xl"></i>
+		</button>
+		<button
+			class="cursor-pointer w-12 h-12 rounded-full bg-gray-800 text-white flex items-center justify-center mb-4"
+			hx-get="/contacts"
+			hx-push-url="true"
+			hx-target="#body"
+		>
+			<i class="fas fa-user text-xl"></i>
+		</button>
+		<a
+			class="cursor-pointer w-12 h-12 rounded-full bg-gray-800 text-white flex items-center justify-center mb-4"
+			href="/groups"
+		>
+			<i class="fas fa-users text-xl"></i>
+		</a>
+		<a
+			class="cursor-pointer w-12 h-12 rounded-full bg-gray-800 text-white flex items-center justify-center mb-4"
+			href="/stories"
+		>
+			<i class="fas fa-circle-notch text-xl"></i>
+		</a>
+		<a
+			class="cursor-pointer w-12 h-12 rounded-full bg-gray-800 text-white flex items-center justify-center"
+			href="/others"
+			disabled
+		>
+			<i class="fas fa-ellipsis-h text-xl"></i>
+		</a>
+	</div>
+}

@@ -171,6 +171,17 @@ func (us *UserService) GetMyInfo(ctx context.Context, tokenString string) (*type
 	return user, err
 }
 
+func (us *UserService) GetUserInfo(ctx context.Context, userId string) (*types.User, error) {
+	user, err := us.userRepository.GetUserImage(ctx, userId)
+	if err != nil {
+		slog.Error("Finding user by id",
+			"error", err,
+		)
+	}
+
+	return user, err
+}
+
 func (us *UserService) GetMyContacts(ctx context.Context, userID, name string) ([]types.UserContact, error) {
 	users, err := us.userRepository.FindMyContacts(ctx, userID, name)
 	if err != nil {

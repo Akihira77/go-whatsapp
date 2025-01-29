@@ -1,0 +1,36 @@
+package components
+
+import (
+	"fmt"
+	"github.com/Akihira77/go_whatsapp/src/types"
+	"github.com/Akihira77/go_whatsapp/src/utils"
+)
+
+templ ContactList(myUserId string, users []types.UserContact) {
+	<div class="p-3">
+		<div class="relative">
+			<input type="text" placeholder="Search your contact" class="w-full py-2 px-4 bg-gray-100 rounded-full text-sm focus:outline-none"/>
+			<i class="fas fa-search absolute right-3 top-2 text-gray-500"></i>
+		</div>
+	</div>
+	<div
+		id="contact__list"
+		class="overflow-y-auto h-[calc(100vh-120px)]"
+	>
+		for _, user := range users {
+			<div class="flex items-center p-3 hover:bg-gray-100 cursor-pointer">
+				if user.UserTwoID != myUserId {
+					<img src={ fmt.Sprintf("/api/users/images/%s", user.UserTwo.ID) } alt="Contact" class="w-12 h-12 rounded-full mr-3"/>
+					<div class="flex-1">
+						<h3 class="text-sm font-semibold">{ utils.GetFullName(&user.UserTwo) }</h3>
+					</div>
+				} else {
+					<img src={ fmt.Sprintf("/api/users/images/%s", user.UserOne.ID) } alt="Contact" class="w-12 h-12 rounded-full mr-3"/>
+					<div class="flex-1">
+						<h3 class="text-sm font-semibold">{ utils.GetFullName(&user.UserOne) }</h3>
+					</div>
+				}
+			</div>
+		}
+	</div>
+}
