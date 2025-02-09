@@ -14,7 +14,28 @@ templ Page() {
 			<link rel="apple-touch-icon" sizes="180x180" href="/public/apple-touch-icon.png"/>
 			<link rel="icon" type="image/png" sizes="32x32" href="/public/favicon-32x32.png"/>
 			<link rel="icon" type="image/png" sizes="16x16" href="/public/favicon-16x16.png"/>
+			<link rel="icon" type="image/png" sizes="192x192" href="/public/android-chrome-192x192.png"/>
+			<link rel="icon" type="image/png" sizes="512x512" href="/public/android-chrome-512x512.png"/>
 			<link rel="manifest" href="/public/site.webmanifest"/>
+			<script src="/public/websocket.js"></script>
+			<script src="/public/utils.js"></script>
+			<script src="/public/errors.js"></script>
+			<script>
+                let lastActiveUserId = null;
+                let hasTyped = false;
+                webSocket.connect(`ws://${window.location.host}/api/ws`);
+
+                handleFormError();
+            </script>
+			<style>
+                div[data-error]::after {
+                    content: attr(data-error);
+                    display: block;
+                    color: red;
+                    font-size: 0.875rem;
+                    margin-top: 4px;
+                }
+            </style>
 		</head>
 		<body
 			id="body"

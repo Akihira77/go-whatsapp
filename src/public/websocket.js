@@ -7,16 +7,6 @@ let webSocket = (() => {
 
       socket.onopen = () => {
         console.log("WebSocket connected.");
-        const urlPath = window.location.pathname;
-        const roomId = urlPath.split("/rooms/")[1];
-        if (roomId && roomId !== "") {
-          sendMessage({
-            type: "JOIN_ROOM",
-            body: JSON.stringify({
-              roomId: roomId,
-            }),
-          });
-        }
       };
 
       socket.onclose = () => console.log("WebSocket disconnected.");

@@ -1,6 +1,6 @@
 package components
 
-templ HomeLeftSidebar() {
+templ MenuLeftSidebar() {
 	<div class="w-16 bg-gray-900 flex flex-col items-center py-4">
 		<button
 			id="home"
@@ -19,15 +19,6 @@ templ HomeLeftSidebar() {
 			hx-target="#body"
 		>
 			<i class="fas fa-user text-xl"></i>
-		</button>
-		<button
-			id="groups"
-			class="menu cursor-pointer w-12 h-12 rounded-full text-white flex items-center justify-center mb-4 bg-gray-800"
-			hx-get="/groups"
-			hx-push-url="true"
-			hx-target="#body"
-		>
-			<i class="fas fa-users text-xl"></i>
 		</button>
 		<button
 			id="stories"

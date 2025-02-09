@@ -1,0 +1,39 @@
+package components
+
+import "github.com/Akihira77/go_whatsapp/src/types"
+
+templ HomeSidebar(myInfo *types.User, users []types.UserDto) {
+	<div
+		id="home__sidebar"
+		class="w-1/4 bg-white border-r border-gray-300 flex flex-col"
+	>
+		@ProfileSection(myInfo)
+		<div
+			id="sidebar"
+		>
+			<div class="p-3">
+				<div class="relative">
+					<input
+						name="username"
+						type="search"
+						placeholder="Search or start new chat"
+						class="w-full py-2 px-4 bg-gray-100 rounded-full text-sm focus:outline-none"
+						hx-get="/"
+						hx-trigger="input changed delay:500ms, keyup[key=='Enter'], search"
+						hx-headers='{"X-Page-Query": "true"}'
+						hx-target="#chat__list"
+						hx-push-url="true"
+						hx-swap="innerHTML"
+					/>
+					<i class="fas fa-search absolute right-3 top-2 text-gray-500"></i>
+				</div>
+			</div>
+		</div>
+		<div
+			id="chat__list"
+			class="overflow-y-auto h-[calc(100vh-120px)]"
+		>
+			@ChatList(users)
+		</div>
+	</div>
+}

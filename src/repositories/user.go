@@ -137,6 +137,7 @@ func (ur *UserRepository) GetUsers(ctx context.Context, myUser *types.User, quer
 		Where("id <> ? AND (first_name || ' ' || last_name) LIKE ?", myUser.ID, "%"+query.Search+"%").
 		Offset((query.Page - 1) * query.Size).
 		Limit(query.Size).
+		Order("(first_name || ' ' || last_name) ASC").
 		Find(&users)
 
 	return users, res.Error
@@ -163,4 +164,19 @@ func (ur *UserRepository) RemoveContact(ctx context.Context, data types.UserCont
 		Delete(&types.UserContact{})
 
 	return res.Error
+}
+
+func (ur *UserRepository) FindGroups(ctx context.Context, userId string) ([]types.UserGroup, error) {
+	var groups []types.UserGroup
+
+	res := ur.
+		store.
+		DB.
+		Debug().
+		Model(&types.UserGroup{}).
+		Preload("Group").
+		Where("user_id = ?", userId).
+		Find(&groups)
+
+	return groups, res.Error
 }

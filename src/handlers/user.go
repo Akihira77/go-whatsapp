@@ -8,24 +8,39 @@ import (
 
 	"github.com/Akihira77/go_whatsapp/src/services"
 	"github.com/Akihira77/go_whatsapp/src/types"
+	"github.com/Akihira77/go_whatsapp/src/utils"
 	"github.com/Akihira77/go_whatsapp/src/views"
 	"github.com/gin-gonic/gin"
 )
 
 type UserHandler struct {
 	userService *services.UserService
+	chatService *services.ChatService
+	v           *utils.MyValidator
 }
 
-func NewUserHandler(userService *services.UserService) *UserHandler {
+func NewUserHandler(userService *services.UserService, chatService *services.ChatService) *UserHandler {
 	return &UserHandler{
 		userService: userService,
+		chatService: chatService,
+		v:           utils.NewMyValidator(),
 	}
 }
 
 func (uh *UserHandler) Logout(c *gin.Context) {
-	c.Set("user", nil)
+	user, ok := c.MustGet("user").(*types.User)
+	if !ok {
+		slog.Error("Failed retrieve user's data from context")
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Failed retrieving your user info"})
+		return
+	}
+
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie("token", "", -1, "/", "localhost", true, true)
+	c.SetCookie("userId", "", -1, "/", "localhost", true, false)
+
+	uh.userService.UpdateUserStatus(c, user, types.OFFLINE)
+	c.Set("user", nil)
 	c.Header("HX-Redirect", "/signin")
 
 	views.Signin().Render(c, c.Writer)
@@ -37,38 +52,46 @@ func (uh *UserHandler) Signup(c *gin.Context) {
 
 	var data types.Signup
 
-	err := c.Bind(&data)
+	err := c.ShouldBind(&data)
 	if err != nil {
 		slog.Error("Binding request payload",
 			"error", err,
 		)
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Request payload is invalid"})
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"signup__form": err.Error()})
+		return
+	}
+
+	errs := uh.v.Validate(&data)
+	if errs != nil || len(errs) > 0 {
+		slog.Error("Request payload is invalid",
+			"error", errs,
+		)
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"signup__form": errs})
 		return
 	}
 
 	file, _, err := c.Request.FormFile("image")
 	if err != nil && file != nil {
 		slog.Error("Failed extract image payload")
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Request payload is invalid"})
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"signup__form": err.Error()})
 		return
 	}
 
 	image := file
 	user, jwt, err := uh.userService.Signup(ctx, &data, image)
 	if err != nil {
-		slog.Error("Signup",
-			"error", err,
-		)
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Signup failed"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Signup failed"})
 		return
 	}
 
 	c.Set("user", user)
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie("token", jwt, 60*60*24, "/", "localhost", true, true)
+	c.SetCookie("userId", user.ID, 60*60*24, "/", "localhost", true, false)
 	c.Header("HX-Redirect", "/")
 
-	views.Home().Render(c, c.Writer)
+	uMsgs, err := uh.chatService.SearchChat(c, user.ID, "")
+	views.Home(uMsgs, []types.Message{}).Render(c, c.Writer)
 }
 
 func (uh *UserHandler) Signin(c *gin.Context) {
@@ -77,30 +100,38 @@ func (uh *UserHandler) Signin(c *gin.Context) {
 
 	var data types.Signin
 
-	err := c.Bind(&data)
+	err := c.ShouldBind(&data)
 	if err != nil {
 		slog.Error("Binding request payload",
 			"error", err,
 		)
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Request payload is invalid"})
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"signin__form": err.Error()})
+		return
+	}
+
+	errs := uh.v.Validate(&data)
+	if errs != nil || len(errs) > 0 {
+		slog.Error("Request payload is invalid",
+			"error", err,
+		)
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"signin__form": errs})
 		return
 	}
 
 	user, jwt, err := uh.userService.Signin(ctx, &data)
 	if err != nil {
-		slog.Error("Signin",
-			"error", err,
-		)
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Signin failed"})
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"signin__form": gin.H{"password": "Password is invalid"}})
 		return
 	}
 
 	c.Set("user", user)
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie("token", jwt, 60*60*24, "/", "localhost", true, true)
+	c.SetCookie("userId", user.ID, 60*60*24, "/", "localhost", true, false)
 	c.Header("HX-Redirect", "/")
 
-	views.Home().Render(c, c.Writer)
+	uMsgs, _ := uh.chatService.SearchChat(c, user.ID, "")
+	views.Home(uMsgs, []types.Message{}).Render(c, c.Writer)
 }
 
 func (uh *UserHandler) GetMyImageProfile(c *gin.Context) {

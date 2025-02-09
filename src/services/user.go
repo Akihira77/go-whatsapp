@@ -71,6 +71,9 @@ func (us *UserService) Signup(ctx context.Context, data *types.Signup, image mul
 		return nil, "", err
 	}
 
+	go us.UpdateUserStatus(context.Background(), &user, types.ONLINE)
+	user.Status = types.ONLINE
+
 	return &user, token, err
 }
 
@@ -81,7 +84,7 @@ func (us *UserService) Signin(ctx context.Context, data *types.Signin) (*types.U
 			"error", err,
 		)
 
-		return nil, "", err
+		return nil, "", fmt.Errorf("User not found")
 	}
 
 	isValid := utils.CheckPasswordHash(data.Password, user.Password)
@@ -96,10 +99,13 @@ func (us *UserService) Signin(ctx context.Context, data *types.Signin) (*types.U
 			"error", err,
 		)
 
-		return nil, "", err
+		return nil, "", fmt.Errorf("Password invalid")
 	}
 
-	return user, token, err
+	go us.UpdateUserStatus(context.Background(), user, types.ONLINE)
+	user.Status = types.ONLINE
+
+	return user, token, nil
 }
 
 func (us *UserService) RefreshToken(ctx context.Context, tokenString string) (*types.User, string, error) {
@@ -171,10 +177,21 @@ func (us *UserService) GetMyInfo(ctx context.Context, tokenString string) (*type
 	return user, err
 }
 
+func (us *UserService) FindUserByID(ctx context.Context, userId string) (*types.User, error) {
+	user, err := us.userRepository.FindByID(ctx, userId)
+	if err != nil {
+		slog.Error("Finding user by id",
+			"error", err,
+		)
+	}
+
+	return user, err
+}
+
 func (us *UserService) GetUserInfo(ctx context.Context, userId string) (*types.User, error) {
 	user, err := us.userRepository.GetUserImage(ctx, userId)
 	if err != nil {
-		slog.Error("Finding user by id",
+		slog.Error("Get user image",
 			"error", err,
 		)
 	}
@@ -294,4 +311,29 @@ func (us *UserService) RemoveContact(ctx context.Context, myUser *types.User, us
 	}
 
 	return contacts, err
+}
+
+func (us *UserService) FindGroups(ctx context.Context, userId string) ([]types.UserGroup, error) {
+	groups, err := us.userRepository.FindGroups(ctx, userId)
+	if err != nil {
+		slog.Error("Retrieving your all groups",
+			"error", err)
+	}
+
+	return groups, err
+}
+
+func (us *UserService) UpdateUserStatus(ctx context.Context, user *types.User, status types.UserStatus) (*types.User, error) {
+	user.Status = status
+	if status == types.OFFLINE {
+		user.LastOnline = time.Now()
+	}
+
+	err := us.userRepository.Update(ctx, user)
+	if err != nil {
+		slog.Error("Updating your OFF/ON status",
+			"error", err)
+	}
+
+	return user, err
 }
