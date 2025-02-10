@@ -3,6 +3,7 @@ package store
 import (
 	"log"
 	"log/slog"
+	"os"
 	"time"
 
 	"github.com/Akihira77/go_whatsapp/src/types"
@@ -15,7 +16,11 @@ type Store struct {
 }
 
 func NewStore() *Store {
-	db, err := gorm.Open(sqlite.Open("whatsapp.db"), &gorm.Config{
+	dbPath := os.Getenv("DB_SQLITE")
+	slog.Info("database",
+		"path", dbPath,
+	)
+	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{
 		SkipDefaultTransaction: true,
 		PrepareStmt:            true,
 	})
