@@ -9,10 +9,10 @@ templ Users(users []types.User, q *types.UserQuerySearch) {
 	@Page() {
 		if isAuthenticated(ctx) {
 			<div class="bg-gray-100 h-screen flex">
-				@components.HomeLeftSidebar()
+				@components.MenuLeftSidebar()
 				<!-- Existing Chat History Sidebar -->
 				<div class="w-1/4 bg-white border-r border-gray-300 flex flex-col">
-					@components.ProfileSection(user)
+					@components.ProfileSection(myInfo)
 					<div class="p-3">
 						<div class="relative">
 							<input
@@ -25,26 +25,24 @@ templ Users(users []types.User, q *types.UserQuerySearch) {
 								hx-headers='{"X-Page-Query": "true"}'
 								hx-target="#user__list"
 								hx-push-url="true"
-								hx-swap="outerHTML"
+								hx-swap="innerHTML"
 								value={ q.Search }
 							/>
 							<i class="fas fa-search absolute right-3 top-2 text-gray-500"></i>
 						</div>
 					</div>
-					@components.UserList(users, q)
+					<div
+						id="user__list"
+						class="overflow-y-auto h-[calc(100vh-120px)]"
+					>
+						@components.UserList(users, q, false)
+					</div>
 				</div>
 				<!-- Main Content -->
 				<div
 					id="main__content"
 					class="flex-1 flex flex-col"
-				>
-					<!-- Chat Header -->
-					<div class="bg-gray-200 p-4 flex items-center"></div>
-					<!-- Chat Messages -->
-					<div class="flex-1 bg-[#e5ddd5] overflow-y-auto p-4"></div>
-					<!-- Message Input -->
-					<div class="bg-gray-200 p-4 flex items-center"></div>
-				</div>
+				></div>
 			</div>
 		}
 	}

@@ -47,15 +47,27 @@ func mainRouter(router *gin.Engine, store *store.Store) {
 		middlewares.AuthOnly(c, userService)
 	})
 
-	pageRouter(router, authenticatedPage, userService)
-	userRouter(api, authenticatedApi, userService)
+	chatRepository := repositories.NewChatRepository(store)
+	chatService := services.NewChatService(chatRepository)
+
+	pageRouter(router, authenticatedPage, userService, chatService)
+	userRouter(api, authenticatedApi, userService, chatService)
+	chatRouter(authenticatedApi, chatService)
+
+	hub := handlers.NewHub()
+	go hub.Run()
+	authenticatedApi.GET("/ws", func(c *gin.Context) {
+		handlers.ServeWs(c, hub, userService, chatService)
+	})
 }
 
-func pageRouter(router *gin.Engine, authenticatedPage *gin.RouterGroup, userService *services.UserService) {
-	pageHandler := handlers.NewPageHandler(userService)
+func pageRouter(router *gin.Engine, authenticatedPage *gin.RouterGroup, userService *services.UserService, chatService *services.ChatService) {
+	pageHandler := handlers.NewPageHandler(userService, chatService)
 	authenticatedPage.GET("/", pageHandler.RenderHome)
+	authenticatedPage.GET("/chat/:userId", pageHandler.RenderChatPage)
 	authenticatedPage.GET("/contacts", pageHandler.RenderMyContacts)
 	authenticatedPage.GET("/users", pageHandler.RenderUsers)
+	authenticatedPage.GET("/groups", pageHandler.RenderMakeGroup)
 	authenticatedPage.GET("/users/profile", pageHandler.RenderMyProfile)
 	authenticatedPage.GET("/users/edit", pageHandler.RenderEditProfile)
 	authenticatedPage.GET("/users/change-password", pageHandler.RenderChangePassword)
@@ -64,8 +76,8 @@ func pageRouter(router *gin.Engine, authenticatedPage *gin.RouterGroup, userServ
 	router.GET("/signin", pageHandler.RenderSignin)
 }
 
-func userRouter(api *gin.RouterGroup, authenticatedApi *gin.RouterGroup, userService *services.UserService) {
-	userHandler := handlers.NewUserHandler(userService)
+func userRouter(api *gin.RouterGroup, authenticatedApi *gin.RouterGroup, userService *services.UserService, chatService *services.ChatService) {
+	userHandler := handlers.NewUserHandler(userService, chatService)
 	api.POST("/users/signin", userHandler.Signin)
 	api.POST("/users/signup", userHandler.Signup)
 
@@ -79,4 +91,12 @@ func userRouter(api *gin.RouterGroup, authenticatedApi *gin.RouterGroup, userSer
 	authenticatedApi.POST("/users/contacts/:userId", userHandler.AddContact)
 	authenticatedApi.POST("/users/logout", userHandler.Logout)
 	authenticatedApi.DELETE("/users/contacts/:userId", userHandler.RemoveContact)
+}
+
+func chatRouter(authenticatedApi *gin.RouterGroup, chatService *services.ChatService) {
+	chatHandler := handlers.NewChatHandler(chatService)
+
+	authenticatedApi.GET("/messages", chatHandler.GetChatList)
+	authenticatedApi.GET("/messages/last/:username", chatHandler.SearchLastMessage)
+	// authenticatedApi.POST("/messages", chatHandler.SendMsgToOffUser)
 }

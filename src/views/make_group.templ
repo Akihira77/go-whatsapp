@@ -1,0 +1,128 @@
+package views
+
+import (
+	"github.com/Akihira77/go_whatsapp/src/components"
+	"github.com/Akihira77/go_whatsapp/src/types"
+)
+
+templ MakeGroup(users []types.User, q *types.UserQuerySearch) {
+	if isAuthenticated(ctx) {
+		<div
+			id="group__container"
+			class="w-1/4 bg-white border-r border-gray-300 flex flex-col py-4"
+		>
+			<div>
+				<div class="flex items-center pb-2">
+					<button
+						type="button"
+						class="cursor-pointer px-7"
+						hx-get="/"
+						hx-target="#group__container"
+						hx-swap="outerHTML"
+						hx-headers='{"X-From-Group": "true"}'
+					>
+						<i class="fa-solid fa-xmark"></i>
+					</button>
+					<h1 class="font-bold text-xl">Add Group Members</h1>
+				</div>
+			</div>
+			<div
+				id="head__bar"
+			>
+				<div class="p-3">
+					<ul
+						id="user_in_group"
+						class="relative flex flex-wrap gap-2 pb-4 text-xs"
+					>
+						<li
+							id="user__${user.id}"
+							class="flex items-center gap-x-4 border rounded-full pl-2"
+						>
+							<span>Dika Demo</span>
+							<button
+								type="button"
+								onclick='removeThis("${user.id}")'
+								class="cursor-pointer hover:bg-slate-500 hover:text-white p-2 rounded-full"
+							>
+								<i class="fa-solid fa-xmark"></i>
+							</button>
+						</li>
+					</ul>
+					<div class="relative">
+						<input
+							id="search__user"
+							name="search"
+							type="search"
+							class="w-full py-2 px-4 bg-gray-100 rounded-full text-sm focus:outline-none"
+							placeholder="Search user by name..."
+							hx-get="/groups"
+							hx-trigger="input changed delay:500ms, keyup[key=='Enter'], search"
+							hx-headers='{"X-Page-Query": "true"}'
+							hx-target="#user__list"
+							hx-push-url="false"
+							hx-swap="innerHTML"
+						/>
+						<i class="fas fa-search absolute right-3 top-2 text-gray-500"></i>
+					</div>
+				</div>
+			</div>
+			<div class="">
+				<div
+					id="user__list"
+					class="overflow-y-auto h-[calc(80vh-120px)]"
+				>
+					@components.UserList(users, q, true)
+				</div>
+				<div class="flex justify-center items-center">
+					<button
+						id="next__menu"
+						class="hidden cursor-pointer text-xl flex justify-center items-center p-5 border rounded-full"
+					>
+						<i class="fa-solid fa-arrow-right-long"></i>
+					</button>
+				</div>
+			</div>
+		</div>
+		<script>
+            let userList = new Map();
+
+            function addThis(user) {
+                if (userList.has(user.id)) return;
+
+                const fullName = user.getAttribute("data-name");
+
+                userList.set(user.id, fullName);
+                const userTemplate = `
+                    <li 
+                        id="user__${user.id}"
+                        class="flex items-center gap-x-4 border rounded-full"
+                    >
+                        <img src="/api/users/images/${user.id}" alt="Contact" class="w-8 h-8 rounded-full"/>
+                        <span>${fullName}</span>
+                        <button
+                            type="button"
+                            onclick='removeThis("${user.id}")'
+                            class="cursor-pointer hover:bg-slate-500 hover:text-white p-2 rounded-full"
+                        >
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </li>
+                `;
+
+                document.getElementById("user_in_group").insertAdjacentHTML("beforeend", userTemplate);
+                document.getElementById("next__menu").classList.remove("hidden");
+                user.classList.add("hidden");
+            }
+
+            function removeThis(userId) {
+                userList.delete(userId);
+                document.getElementById(`user__${userId}`).remove();
+                document.getElementById(userId).classList.remove("hidden");
+
+                if (userList.size === 0) {
+                    document.getElementById("next__menu").classList.add("hidden");
+                }
+            }
+        </script>
+	}
+}

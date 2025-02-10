@@ -1,25 +1,82 @@
 package components
 
 import (
+	"fmt"
 	"github.com/Akihira77/go_whatsapp/src/types"
-	"github.com/Akihira77/go_whatsapp/src/utils"
-	"time"
+	"strconv"
 )
 
-templ ChatList(messages []types.Message) {
-	<div
-		id="chat__list"
-		class="overflow-y-auto h-[calc(100vh-120px)]"
-	>
-		for _, m := range messages {
-			<div class="flex items-center p-3 hover:bg-gray-100 cursor-pointer">
-				<img src="/api/users/my-image" alt="Contact" class="w-12 h-12 rounded-full mr-3"/>
-				<div class="flex-1">
-					<h3 class="text-sm font-semibold">{ utils.GetFullName(m.Sender) }</h3>
-					<p class="text-xs text-gray-600 truncate">{ m.Content }</p>
+templ ChatList(users []types.UserDto) {
+	for i, user := range users {
+		if user.ID != "" {
+			<div
+				id={ fmt.Sprintf("user__chat__%s", user.ID) }
+				data-user-id={ user.ID }
+				if i & 1 == 1 {
+					class="chat__user flex items-center p-3 bg-slate-100 hover:bg-slate-300 cursor-pointer relative"
+				} else {
+					class="chat__user flex items-center p-3 bg-slate-200 hover:bg-slate-300 cursor-pointer relative"
+				}
+			>
+				<div
+					class="relative"
+				>
+					<img src={ fmt.Sprintf("/api/users/images/%s", user.ID) } alt="Contact" class="w-12 h-12 rounded-full"/>
+					if user.Status == types.ONLINE {
+						<div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+					} else {
+						<div class="absolute bottom-0 right-0 w-3 h-3 bg-slate-500 rounded-full border-2 border-white"></div>
+					}
 				</div>
-				<span class="text-xs text-gray-500">{ m.Sender.CreatedAt.Format(time.RFC822) }</span>
+				<div class="flex-1 ml-3">
+					<h3 class="text-sm font-semibold">{ user.FullName }</h3>
+				</div>
+				<div
+					id={ fmt.Sprintf("unread__chat__%s", user.ID) }
+					if user.UnreadChatCount > 0 {
+						class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full"
+					} else {
+						class="invisible"
+					}
+				>
+					{ strconv.Itoa(user.UnreadChatCount) }
+				</div>
 			</div>
 		}
-	</div>
+	}
+	<script>
+        document.querySelectorAll('.chat__user').forEach(userElement => {
+            userElement.addEventListener('click', function () {
+                const userId = this.getAttribute("data-user-id");
+
+                if (userId !== lastActiveUserId) {
+                    htmx.ajax("GET", `/chat/${userId}`, {target:"#main__content", swap:"innerHTML"}).then(() => {
+                        const unreadChatUserCount = document.getElementById(`unread__chat__${userId}`);
+                        unreadChatUserCount.innerHTML = 0;
+                        unreadChatUserCount.className = "invisible";
+                    });
+                    lastActiveUserId = userId;
+                } 
+            });
+        });
+
+        webSocket.onMessage((data) => {
+            const myUserId = getCookieByName("userId");
+            if (data.type === "PEER_CHAT") {
+                appendMessage(myUserId, data.body.senderId, data.body.content, data.body.createdAt);
+
+                if (data.body.senderId !== myUserId) {
+                    const sender = document.getElementById(`unread__chat__${data.body.senderId}`);
+                    console.log("sender", sender);
+                    if (sender) {
+                        sender.innerHTML = parseInt(sender.innerHTML) + 1;
+                        sender.className = "absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full";
+                    }
+                }
+            } else if (data.type === "GROUP_CHAT") {
+                //TODO: IMPLEMENT LATER
+            }
+        });
+
+    </script>
 }

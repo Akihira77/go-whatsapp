@@ -47,6 +47,8 @@ func (s *Store) Migrate() {
 		&types.UserContact{},
 		&types.File{},
 		&types.Message{},
+		&types.Group{},
+		&types.UserGroup{},
 	)
 
 	if err != nil {

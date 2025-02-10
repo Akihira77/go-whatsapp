@@ -14,7 +14,7 @@ func main() {
 	}
 
 	store := store.NewStore()
-	store.Migrate()
+	// store.Migrate()
 
 	port := os.Getenv("PORT")
 	if err := NewHttpServer(port, store); err != nil {

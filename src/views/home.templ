@@ -7,7 +7,7 @@ import (
 	"log/slog"
 )
 
-var user *types.User
+var myInfo *types.User
 
 func isAuthenticated(ctx context.Context) bool {
 	data, ok := ctx.Value("user").(*types.User)
@@ -18,93 +18,23 @@ func isAuthenticated(ctx context.Context) bool {
 		return false
 	}
 
-	user = data
+	myInfo = data
 	return true
 }
 
-templ Home(msgs []types.Message) {
+templ Home(users []types.UserDto, msgs []types.Message) {
 	@Page() {
 		if isAuthenticated(ctx) {
 			<div class="bg-gray-100 h-screen flex">
-				@components.HomeLeftSidebar()
-				<!-- Existing Chat History Sidebar -->
-				<div class="w-1/4 bg-white border-r border-gray-300 flex flex-col">
-					@components.ProfileSection(user)
-					<div
-						id="sidebar"
-					>
-						<div class="p-3">
-							<div class="relative">
-								<input
-									name="search"
-									type="search"
-									placeholder="Search or start new chat"
-									class="w-full py-2 px-4 bg-gray-100 rounded-full text-sm focus:outline-none"
-									placeholder="Search chat by user name..."
-									hx-get="/messages"
-									hx-trigger="input changed delay:500ms, keyup[key=='Enter'], search"
-									hx-headers='{"X-Page-Query": "true"}'
-									hx-target="#chat__list"
-									hx-push-url="true"
-									hx-swap="outerHTML"
-								/>
-								<i class="fas fa-search absolute right-3 top-2 text-gray-500"></i>
-							</div>
-						</div>
-					</div>
-					@components.ChatList(msgs)
-				</div>
-				<!-- Main Content -->
+				@components.MenuLeftSidebar()
+				@components.HomeSidebar(myInfo, users)
 				<div
 					id="main__content"
 					class="flex-1 flex flex-col"
-				>
-					<!-- Chat Header -->
-					<div class="bg-gray-200 p-4 flex items-center">
-						<img src="/api/users/my-image" alt="Contact" class="w-10 h-10 rounded-full mr-3"/>
-						<div class="flex-1">
-							<h2 class="font-semibold">John Doe</h2>
-							<p class="text-xs text-gray-600">online</p>
-						</div>
-						<div class="flex space-x-4">
-							<i class="fas fa-search text-gray-600"></i>
-							<i class="fas fa-ellipsis-v text-gray-600"></i>
-						</div>
-					</div>
-					<!-- Chat Messages -->
-					<div class="flex-1 bg-[#e5ddd5] overflow-y-auto p-4">
-						<!-- Messages will go here -->
-						<div class="bg-white rounded-lg p-2 mb-2 max-w-[70%] ml-auto">
-							<p class="text-sm">Hey, how are you?</p>
-							<span class="text-xs text-gray-500 float-right">10:30 AM</span>
-						</div>
-						<div class="bg-white rounded-lg p-2 mb-2 max-w-[70%]">
-							<p class="text-sm">I'm good, thanks! How about you?</p>
-							<span class="text-xs text-gray-500 float-right">10:31 AM</span>
-						</div>
-					</div>
-					<!-- Message Input -->
-					<div class="bg-gray-200 p-4 flex items-center">
-						<i class="fas fa-smile text-gray-600 mr-4"></i>
-						<i class="fas fa-paperclip text-gray-600 mr-4"></i>
-						<input type="text" placeholder="Type a message" class="flex-1 py-2 px-4 bg-white rounded-full text-sm focus:outline-none"/>
-						<i class="fas fa-microphone text-gray-600 ml-4"></i>
-					</div>
-				</div>
+				></div>
 			</div>
 			<script>
 
-            document.getElementById('dropdownToggle').addEventListener('click', () => {
-                document.getElementById('dropdownMenu').classList.toggle('hidden');
-            });
-
-            window.addEventListener('click', (event) => {
-                const dropdownMenu = document.getElementById('dropdownMenu');
-                const dropdownToggle = document.getElementById('dropdownToggle');
-                if (!dropdownToggle.contains(event.target) && !dropdownMenu.contains(event.target)) {
-                    dropdownMenu.classList.add('hidden');
-                }
-            });
         </script>
 		}
 	}

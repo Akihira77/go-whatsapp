@@ -9,7 +9,7 @@ templ MyContacts(user *types.User, users []types.UserContact) {
 	@Page() {
 		if isAuthenticated(ctx) {
 			<div class="bg-gray-100 h-screen flex">
-				@components.HomeLeftSidebar()
+				@components.MenuLeftSidebar()
 				<!-- Existing Chat History Sidebar -->
 				<div class="w-1/4 bg-white border-r border-gray-300 flex flex-col">
 					@components.ProfileSection(user)
