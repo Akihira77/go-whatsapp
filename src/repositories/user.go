@@ -232,8 +232,11 @@ func (ur *UserRepository) FindGroupByID(ctx context.Context, id string) (*types.
 	res := ur.
 		store.
 		DB.
+		Debug().
 		Model(&types.Group{}).
 		WithContext(ctx).
+		Preload("Creator").
+		Preload("Member.User").
 		Where("id = ?", id).
 		First(&u)
 

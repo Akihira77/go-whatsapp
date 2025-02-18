@@ -1,0 +1,280 @@
+package components
+
+import (
+	"fmt"
+	"github.com/Akihira77/go_whatsapp/src/types"
+	"github.com/Akihira77/go_whatsapp/src/utils"
+	"strconv"
+)
+
+templ GroupInfo(g *types.Group) {
+	<div class="fixed right-0 top-0 h-full w-[400px] bg-white shadow-lg overflow-y-auto">
+		<!-- New Header Section -->
+		<div class="flex items-center gap-4 p-4 sticky top-0 z-10">
+			<button
+				id="closeButton"
+				class="hover:bg-slate-300 cursor-pointer rounded-full p-1 transition-colors"
+				onclick="handleGroupInfo('close')"
+			>
+				<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+				</svg>
+			</button>
+			<h1 class="text-lg font-medium">Group info</h1>
+		</div>
+		<!-- Group Profile Section -->
+		<div
+			id="body"
+			class="relative p-4 border-b"
+		>
+			<div class="relative w-40 h-40 mx-auto mb-4">
+				<img src={ fmt.Sprintf("/api/groups/images/%s", g.ID) } alt="Group Profile" class="w-full h-full object-cover rounded-full"/>
+				<button id="profileMenu" class="cursor-pointer absolute bottom-0 right-0 bg-[#128C7E] text-white p-2 rounded-full">
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+					</svg>
+				</button>
+				<div id="profileDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
+					<a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">View photo</a>
+					<a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Upload photo</a>
+					<a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Remove photo</a>
+				</div>
+			</div>
+			<div class="flex items-center justify-center gap-2 mb-1">
+				<div id="groupNameContainer" class="text-center">
+					<h2 id="groupNameText" class="text-2xl font-bold">{ g.Name }</h2>
+					<input type="text" id="groupNameInput" class="hidden text-2xl font-bold text-center w-full border-b border-whatsapp outline-none" value="Group Name"/>
+				</div>
+				<button id="editGroupName" class="cursor-pointer text-gray-500 hover:text-whatsapp">
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+					</svg>
+				</button>
+			</div>
+			<p class="text-center text-gray-500 mb-2">
+				<span id="memberCount">{ strconv.Itoa(g.UserCount + 1) }</span>
+				if g.UserCount > 0 {
+					members
+				} else {
+					member
+				}
+			</p>
+		</div>
+		<!-- Group Description Section -->
+		//TODO: Add group description
+		<div class="p-4 border-b">
+			<h3 class="text-lg font-semibold mb-2">Group Description</h3>
+			<div class="flex items-start gap-2">
+				<div id="groupDescContainer" class="flex-1">
+					<p id="groupDescText" class="text-gray-600 mb-2">Click to add group description</p>
+					<textarea id="groupDescInput" class="hidden w-full min-h-[100px] p-2 text-gray-600 border rounded-md resize-none" placeholder="Add group description"></textarea>
+				</div>
+				<button id="editGroupDesc" class="cursor-pointer text-gray-500 hover:text-whatsapp pt-1">
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+					</svg>
+				</button>
+			</div>
+		</div>
+		<!-- Member Section -->
+		<div class="p-4 border-b">
+			<div class="flex justify-between items-center mb-4">
+				<h3 class="text-lg font-semibold">Members</h3>
+				<span id="memberCount" class="text-sm text-gray-500">
+					if g.UserCount > 0 {
+						{ fmt.Sprintf("%d members", g.UserCount + 1) }
+					} else {
+						{ fmt.Sprintf("%d member", g.UserCount + 1) }
+					}
+				</span>
+			</div>
+			<ul id="memberList" class="space-y-2">
+				for i, member := range g.Member {
+					<li
+						id={ fmt.Sprintf("member__%s", g.Creator.ID) }
+						class="flex items-center p-2 rounded-md hover:bg-gray-100 transition duration-300"
+					>
+						<img src={ fmt.Sprintf("/api/users/images/%s", g.Creator.ID) } alt="Profile" class="w-10 h-10 rounded-full mr-3"/>
+						<span>{ utils.GetFullName(g.Creator) }</span>
+					</li>
+					if i < 10 && member.User.ID != g.Creator.ID {
+						<li
+							id={ fmt.Sprintf("member__%s", member.User.ID) }
+							class="flex items-center p-2 rounded-md hover:bg-gray-100 transition duration-300"
+						>
+							<img src={ fmt.Sprintf("/api/users/images/%s", member.User.ID) } alt="Profile" class="w-10 h-10 rounded-full mr-3"/>
+							<span>{ utils.GetFullName(&member.User) }</span>
+						</li>
+					}
+				}
+			</ul>
+			<button id="viewMoreMembers" class="cursor-pointer mt-4 w-full bg-gray-100 text-gray-700 py-2 rounded-md hover:bg-gray-200 transition duration-300">
+				View more members
+			</button>
+		</div>
+		<!-- Option Section -->
+		<div class="p-4">
+			<button
+				id="exitGroup"
+				class="cursor-pointer w-full bg-red-500 text-white py-2 rounded-md hover:bg-red-600 transition duration-300"
+				hx-delete={ fmt.Sprintf("/groups/%s", g.ID) }
+				hx-confirm={ fmt.Sprintf("Exit '%s' group?", g.Name) }
+			>
+				Exit Group
+			</button>
+		</div>
+		<!-- Modal for all members -->
+		<div id="allMembersModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center">
+			<div class="bg-white px-6 py-4 rounded-lg w-96 max-h-[80vh] overflow-y-auto">
+				<div class="flex items-center gap-4 px-2 py-4 sticky top-0 z-10">
+					<button
+						id="closeModal"
+						class="hover:bg-slate-300 cursor-pointer rounded-full p-1 transition-colors"
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+						</svg>
+					</button>
+					<h2 class="text-2xl font-bold">All Members</h2>
+				</div>
+				<input type="text" id="modalMemberSearch" placeholder="Search members" class="w-full px-3 py-2 border rounded-md mb-4"/>
+				<ul id="modalMemberList" class="space-y-2">
+					<!-- All members will be listed here -->
+				</ul>
+			</div>
+		</div>
+	</div>
+	<script>
+        // Toggle profile dropdown
+        document.getElementById('profileMenu').addEventListener('click', function() {
+            document.getElementById('profileDropdown').classList.toggle('hidden');
+        });
+
+        // Group Name Edit Functionality
+        const groupNameText = document.getElementById('groupNameText');
+        const groupNameInput = document.getElementById('groupNameInput');
+        const editGroupName = document.getElementById('editGroupName');
+
+        editGroupName.addEventListener('click', () => {
+            groupNameText.classList.add('hidden');
+            groupNameInput.classList.remove('hidden');
+            groupNameInput.value = groupNameText.textContent;
+            groupNameInput.focus();
+        });
+
+        groupNameInput.addEventListener('blur', () => {
+            groupNameText.classList.remove('hidden');
+            groupNameInput.classList.add('hidden');
+            if (groupNameInput.value.trim() !== '') {
+                groupNameText.textContent = groupNameInput.value;
+            }
+        });
+
+        groupNameInput.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') {
+                groupNameInput.blur();
+            } else if (e.key === 'Escape') {
+                groupNameInput.value = groupNameText.textContent; // Revert to previous value
+                groupNameInput.blur();
+            }
+        });
+
+        // Group Description Edit Functionality
+        const groupDescText = document.getElementById('groupDescText');
+        const groupDescInput = document.getElementById('groupDescInput');
+        const editGroupDesc = document.getElementById('editGroupDesc');
+
+        editGroupDesc.addEventListener('click', () => {
+            groupDescText.classList.add('hidden');
+            groupDescInput.classList.remove('hidden');
+            groupDescInput.value = groupDescText.textContent;
+            groupDescInput.focus();
+        });
+
+        groupDescInput.addEventListener('blur', () => {
+            groupDescText.classList.remove('hidden');
+            groupDescInput.classList.add('hidden');
+            if (groupDescInput.value.trim() !== '') {
+                groupDescText.textContent = groupDescInput.value;
+            }
+        });
+
+        groupDescInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                groupDescInput.value = groupDescText.textContent; // Revert to previous value
+                groupDescInput.blur();
+            }
+        });
+
+        // Member data (example)
+        const allMembers = [
+            { name: 'Alice Johnson', avatar: 'https://i.pravatar.cc/150?img=1' },
+            { name: 'Bob Smith', avatar: 'https://i.pravatar.cc/150?img=2' },
+            { name: 'Charlie Brown', avatar: 'https://i.pravatar.cc/150?img=3' },
+            { name: 'David Lee', avatar: 'https://i.pravatar.cc/150?img=4' },
+            { name: 'Eve Taylor', avatar: 'https://i.pravatar.cc/150?img=5' },
+            { name: 'Frank Wilson', avatar: 'https://i.pravatar.cc/150?img=6' },
+            { name: 'Grace Davis', avatar: 'https://i.pravatar.cc/150?img=7' },
+            { name: 'Henry Miller', avatar: 'https://i.pravatar.cc/150?img=8' },
+            { name: 'Ivy Chen', avatar: 'https://i.pravatar.cc/150?img=9' },
+            { name: 'Jack Thompson', avatar: 'https://i.pravatar.cc/150?img=10' },
+            { name: 'Karen White', avatar: 'https://i.pravatar.cc/150?img=11' },
+            { name: 'Liam Harris', avatar: 'https://i.pravatar.cc/150?img=12' },
+            // Add more members as needed
+        ];
+
+        const modalMemberList = document.getElementById('modalMemberList');
+        const memberCount = document.getElementById('memberCount');
+        const viewMoreButton = document.getElementById('viewMoreMembers');
+        const modal = document.getElementById('allMembersModal');
+        const closeModalButton = document.getElementById('closeModal');
+        const memberSearch = document.getElementById('memberSearch');
+        const modalMemberSearch = document.getElementById('modalMemberSearch');
+
+        // Function to create member list item
+        function createMemberItem(member) {
+            const li = document.createElement('li');
+            li.className = 'flex items-center p-2 rounded-md hover:bg-gray-100 transition duration-300';
+            li.innerHTML = `
+                <img src="${member.avatar}" alt="${member.name}" class="w-10 h-10 rounded-full mr-3">
+                <span>${member.name}</span>
+            `;
+            return li;
+        }
+
+        // Function to filter members
+        function filterMembers(members, searchTerm) {
+            return members.filter(member => 
+                member.name.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+        }
+
+        // Populate member list (first 10 members)
+        function populateMemberList(members, listElement, limit = 10) {
+            listElement.innerHTML = '';
+            members.slice(0, limit).forEach(member => {
+                listElement.appendChild(createMemberItem(member));
+            });
+        }
+
+        // View more button click handler
+        viewMoreButton.addEventListener('click', () => {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            populateMemberList(allMembers, modalMemberList);
+        });
+
+        // Close modal button click handler
+        closeModalButton.addEventListener('click', () => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        });
+
+        // Search functionality for modal
+        modalMemberSearch.addEventListener('input', (e) => {
+            const searchTerm = e.target.value;
+            const filteredMembers = filterMembers(allMembers, searchTerm);
+            populateMemberList(filteredMembers, modalMemberList);
+        });
+    </script>
+}

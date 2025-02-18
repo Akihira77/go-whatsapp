@@ -68,6 +68,7 @@ func pageRouter(router *gin.Engine, authenticatedPage *gin.RouterGroup, userServ
 	authenticatedPage.GET("/contacts", pageHandler.RenderMyContacts)
 	authenticatedPage.GET("/users", pageHandler.RenderUsers)
 	authenticatedPage.GET("/groups", pageHandler.RenderMakeGroup)
+	authenticatedPage.GET("/groups/:groupId", pageHandler.RenderGroupInfo)
 	authenticatedPage.GET("/groups/naming", pageHandler.RenderNamingGroup)
 	authenticatedPage.GET("/users/profile", pageHandler.RenderMyProfile)
 	authenticatedPage.GET("/users/edit", pageHandler.RenderEditProfile)

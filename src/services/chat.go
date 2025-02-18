@@ -132,5 +132,9 @@ func (cs *ChatService) MarkMessagesAsRead(ctx context.Context, senderId, receive
 		return []types.Message{}, err
 	}
 
+	if groupId != "" {
+		return cs.GetMessagesInsideGroup(ctx, groupId)
+	}
+
 	return cs.GetMessages(ctx, senderId, receiverId)
 }

@@ -38,7 +38,7 @@ type Group struct {
 	ID           string      `json:"id" gorm:"not null;primaryKey"`
 	Name         string      `json:"name" gorm:"not null;index"`
 	UserCount    int         `json:"userCount" gorm:"not null"`
-	Member       []UserGroup `json:"member,omitempty"`
+	Member       []UserGroup `json:"member,omitempty" gorm:"foreignKey:GroupID;references:ID"`
 	CreatorID    string      `json:"creatorId" gorm:"not null"`
 	Creator      *User       `json:"creator,omitempty"`
 	GroupProfile []byte      `json:"groupProfile,omitempty"`

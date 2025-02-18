@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/Akihira77/go_whatsapp/src/utils"
 	"github.com/Akihira77/go_whatsapp/src/views"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type PageHandler struct {
@@ -96,6 +98,7 @@ func (ph *PageHandler) RenderChatPage(c *gin.Context) {
 			slog.Error("Retrieving sender's info",
 				"error", err,
 			)
+			return
 		}
 
 		msgs, err := ph.chatService.MarkMessagesAsRead(c, senderId, user.ID, "")
@@ -103,6 +106,7 @@ func (ph *PageHandler) RenderChatPage(c *gin.Context) {
 			slog.Error("Retrieving reads messages",
 				"error", err,
 			)
+			return
 		}
 
 		components.ChatPage(u, msgs).Render(c, c.Writer)
@@ -113,6 +117,7 @@ func (ph *PageHandler) RenderChatPage(c *gin.Context) {
 			slog.Error("Retrieving group's info",
 				"error", err,
 			)
+			return
 		}
 
 		msgs, err := ph.chatService.MarkMessagesAsRead(c, senderId, user.ID, groupId)
@@ -120,6 +125,7 @@ func (ph *PageHandler) RenderChatPage(c *gin.Context) {
 			slog.Error("Retrieving reads messages",
 				"error", err,
 			)
+			return
 		}
 		g.Messages = msgs
 
@@ -242,6 +248,28 @@ func (ph *PageHandler) RenderMakeGroup(c *gin.Context) {
 	}
 
 	views.MakeGroup(users, &query).Render(c, c.Writer)
+}
+
+func (ph *PageHandler) RenderGroupInfo(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, 500*time.Millisecond)
+	defer cancel()
+
+	groupId := c.Param("groupId")
+	g, err := ph.userService.FindGroupByID(ctx, groupId)
+	if err != nil {
+		slog.Error("Failed retrieve group info",
+			"groupId", groupId,
+			"err", err)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"message": "Group not found"})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed retrieve group info"})
+		return
+	}
+
+	components.GroupInfo(g).Render(c, c.Writer)
 }
 
 func (ph *PageHandler) RenderNamingGroup(c *gin.Context) {
