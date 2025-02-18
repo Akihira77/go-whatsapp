@@ -70,7 +70,11 @@ func (uh *UserHandler) Signup(c *gin.Context) {
 		return
 	}
 
-	file, _, err := c.Request.FormFile("image")
+	file, _, err := c.Request.FormFile("user-profile")
+	slog.Info("req body",
+		"data", data,
+		"image", file,
+	)
 	if err != nil && file != nil {
 		slog.Error("Failed extract image payload")
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"signup__form": err.Error()})
@@ -90,8 +94,8 @@ func (uh *UserHandler) Signup(c *gin.Context) {
 	c.SetCookie("userId", user.ID, 60*60*24, "/", "localhost", true, false)
 	c.Header("HX-Redirect", "/")
 
-	uMsgs, err := uh.chatService.SearchChat(c, user.ID, "")
-	views.Home(uMsgs, []types.Message{}).Render(c, c.Writer)
+	uMsgs, err := uh.chatService.SearchChat(c, user.ID, "%%", "%%")
+	views.Home(uMsgs, nil).Render(c, c.Writer)
 }
 
 func (uh *UserHandler) Signin(c *gin.Context) {
@@ -130,8 +134,8 @@ func (uh *UserHandler) Signin(c *gin.Context) {
 	c.SetCookie("userId", user.ID, 60*60*24, "/", "localhost", true, false)
 	c.Header("HX-Redirect", "/")
 
-	uMsgs, _ := uh.chatService.SearchChat(c, user.ID, "")
-	views.Home(uMsgs, []types.Message{}).Render(c, c.Writer)
+	uMsgs, _ := uh.chatService.SearchChat(c, user.ID, "%%", "%%")
+	views.Home(uMsgs, nil).Render(c, c.Writer)
 }
 
 func (uh *UserHandler) GetMyImageProfile(c *gin.Context) {
@@ -157,6 +161,19 @@ func (uh *UserHandler) GetUserImageProfile(c *gin.Context) {
 
 	c.Header("Content-Type", "image/png")
 	c.Writer.Write(user.ImageUrl)
+}
+
+func (uh *UserHandler) GetGroupImageProfile(c *gin.Context) {
+	groupId := c.Param("groupId")
+	group, err := uh.userService.FindGroupByID(c, groupId)
+	if err != nil {
+		slog.Error("Failed retrieve group's data")
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Failed retrieving your group information"})
+		return
+	}
+
+	c.Header("Content-Type", "image/png")
+	c.Writer.Write(group.GroupProfile)
 }
 
 func (uh *UserHandler) GetMyInfo(c *gin.Context) {

@@ -76,38 +76,66 @@ templ MakeGroup(users []types.User, q *types.UserQuerySearch) {
 				<div class="flex justify-center items-center">
 					<button
 						id="next__menu"
+						onclick="nextNamingGroup()"
 						class="hidden cursor-pointer text-xl flex justify-center items-center p-5 border rounded-full"
 					>
 						<i class="fa-solid fa-arrow-right-long"></i>
 					</button>
 				</div>
 			</div>
-		</div>
-		<script>
-            let userList = new Map();
+			<script>
+            window.addEventListener("beforeunload", function (event) {
+                event.preventDefault();
+                console.log("userlist still has value");
+
+                if (userList.size > 0) {
+                    event.returnValue = "You have unsaved changes. Do you really want to leave?";
+                }
+            });
+
+            function nextNamingGroup() {
+                if (userList.size === 0) {
+                    console.log("next Naming Group");
+                    alert("Cannot make group with just you as member");
+                    return;
+                }
+
+                htmx.ajax('GET', '/groups/naming', {target: '#group__container', swap: 'outerHTML'});
+            }
+
+            backChoosingMember();
+
+            function backChoosingMember() {
+                const memberGroup = document.getElementById("user_in_group");
+                if (!memberGroup) return;
+
+                for (const [key, value] of userList) {
+                    const user = document.getElementById(key);
+                    addThis(user);
+                }
+            }
 
             function addThis(user) {
-                if (userList.has(user.id)) return;
-
                 const fullName = user.getAttribute("data-name");
-
                 userList.set(user.id, fullName);
+                // sessionStorage.setItem("user__list", JSON.stringify([...userList]));
+
                 const userTemplate = `
                     <li 
-                        id="user__${user.id}"
-                        class="flex items-center gap-x-4 border rounded-full"
+                    id="user__${user.id}"
+                    class="flex items-center gap-x-4 border rounded-full"
                     >
-                        <img src="/api/users/images/${user.id}" alt="Contact" class="w-8 h-8 rounded-full"/>
-                        <span>${fullName}</span>
-                        <button
-                            type="button"
-                            onclick='removeThis("${user.id}")'
-                            class="cursor-pointer hover:bg-slate-500 hover:text-white p-2 rounded-full"
-                        >
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
+                    <img src="/api/users/images/${user.id}" alt="Contact" class="w-8 h-8 rounded-full"/>
+                    <span>${fullName}</span>
+                    <button
+                    type="button"
+                    onclick='removeThis("${user.id}")'
+                    class="cursor-pointer hover:bg-slate-500 hover:text-white p-2 rounded-full"
+                    >
+                    <i class="fa-solid fa-xmark"></i>
+                    </button>
                     </li>
-                `;
+                    `;
 
                 document.getElementById("user_in_group").insertAdjacentHTML("beforeend", userTemplate);
                 document.getElementById("next__menu").classList.remove("hidden");
@@ -116,6 +144,7 @@ templ MakeGroup(users []types.User, q *types.UserQuerySearch) {
 
             function removeThis(userId) {
                 userList.delete(userId);
+                sessionStorage.setItem("user__list", JSON.stringify([...userList]));
                 document.getElementById(`user__${userId}`).remove();
                 document.getElementById(userId).classList.remove("hidden");
 
@@ -123,6 +152,7 @@ templ MakeGroup(users []types.User, q *types.UserQuerySearch) {
                     document.getElementById("next__menu").classList.add("hidden");
                 }
             }
-        </script>
+            </script>
+		</div>
 	}
 }

@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"time"
@@ -9,6 +11,7 @@ import (
 	"github.com/Akihira77/go_whatsapp/src/components"
 	"github.com/Akihira77/go_whatsapp/src/services"
 	"github.com/Akihira77/go_whatsapp/src/types"
+	"github.com/Akihira77/go_whatsapp/src/utils"
 	"github.com/Akihira77/go_whatsapp/src/views"
 	"github.com/gin-gonic/gin"
 )
@@ -16,12 +19,14 @@ import (
 type PageHandler struct {
 	userService *services.UserService
 	chatService *services.ChatService
+	v           *utils.MyValidator
 }
 
 func NewPageHandler(userService *services.UserService, chatService *services.ChatService) *PageHandler {
 	return &PageHandler{
 		userService: userService,
 		chatService: chatService,
+		v:           utils.NewMyValidator(),
 	}
 }
 
@@ -41,8 +46,23 @@ func (ph *PageHandler) RenderHome(c *gin.Context) {
 		return
 	}
 
-	username := c.Query("username")
-	users, err := ph.chatService.SearchChat(c, user.ID, username)
+	userName := c.Query("username")
+	groupName := c.Query("groupname")
+
+	if userName != "" {
+		userName = "%" + userName + "%"
+	}
+
+	if groupName != "" {
+		groupName = "%" + groupName + "%"
+	}
+
+	if groupName == "" && userName == "" {
+		userName = "%" + userName + "%"
+		groupName = "%" + groupName + "%"
+	}
+
+	chatList, err := ph.chatService.SearchChat(c, user.ID, userName, groupName)
 	if err != nil {
 		slog.Error("Retrieving last messages",
 			"error", err,
@@ -50,14 +70,15 @@ func (ph *PageHandler) RenderHome(c *gin.Context) {
 	}
 
 	if c.GetHeader("X-Page-Query") != "" {
-		components.ChatList(users).Render(c, c.Writer)
+		components.ChatList(chatList).Render(c, c.Writer)
 		return
 	} else if c.GetHeader("X-From-Group") != "" {
-		components.HomeSidebar(user, users).Render(c, c.Writer)
+		components.HomeSidebar(user, chatList).Render(c, c.Writer)
 		return
 	}
 
-	views.Home(users, nil).Render(c, c.Writer)
+	user.Status = types.ONLINE
+	views.Home(chatList, nil).Render(c, c.Writer)
 }
 
 func (ph *PageHandler) RenderChatPage(c *gin.Context) {
@@ -68,22 +89,42 @@ func (ph *PageHandler) RenderChatPage(c *gin.Context) {
 		return
 	}
 
-	senderId := c.Param("userId")
-	u, err := ph.userService.FindUserByID(c, senderId)
-	if err != nil {
-		slog.Error("Retrieving sender's info",
-			"error", err,
-		)
-	}
+	senderId := c.Query("userId")
+	if senderId != "" {
+		u, err := ph.userService.FindUserByID(c, senderId)
+		if err != nil {
+			slog.Error("Retrieving sender's info",
+				"error", err,
+			)
+		}
 
-	msgs, err := ph.chatService.MarkMessagesAsRead(c, senderId, user.ID)
-	if err != nil {
-		slog.Error("Retrieving reads messages",
-			"error", err,
-		)
-	}
+		msgs, err := ph.chatService.MarkMessagesAsRead(c, senderId, user.ID, "")
+		if err != nil {
+			slog.Error("Retrieving reads messages",
+				"error", err,
+			)
+		}
 
-	components.ChatPage(u, msgs).Render(c, c.Writer)
+		components.ChatPage(u, msgs).Render(c, c.Writer)
+	} else {
+		groupId := c.Query("groupId")
+		g, err := ph.userService.FindGroupByID(c, groupId)
+		if err != nil {
+			slog.Error("Retrieving group's info",
+				"error", err,
+			)
+		}
+
+		msgs, err := ph.chatService.MarkMessagesAsRead(c, senderId, user.ID, groupId)
+		if err != nil {
+			slog.Error("Retrieving reads messages",
+				"error", err,
+			)
+		}
+		g.Messages = msgs
+
+		components.GroupPage(user, g).Render(c, c.Writer)
+	}
 }
 
 func (ph *PageHandler) RenderMyProfile(c *gin.Context) {
@@ -201,4 +242,75 @@ func (ph *PageHandler) RenderMakeGroup(c *gin.Context) {
 	}
 
 	views.MakeGroup(users, &query).Render(c, c.Writer)
+}
+
+func (ph *PageHandler) RenderNamingGroup(c *gin.Context) {
+	components.NamingGroup().Render(c, c.Writer)
+}
+
+func (ph *PageHandler) CreateGroup(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, 500*time.Millisecond)
+	defer cancel()
+
+	user, ok := c.MustGet("user").(*types.User)
+	if !ok {
+		slog.Error("Failed retrieve user's data from context")
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Failed retrieving your user info"})
+		return
+	}
+
+	var data types.CreateGroup
+	if err := c.ShouldBindJSON(&data); err != nil {
+		slog.Error("Failed extract request payload",
+			"err", err,
+		)
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Request payload is invalid"})
+		return
+	}
+
+	errs := ph.v.Validate(&data)
+	if errs != nil || len(errs) > 0 {
+		slog.Error("Request payload is invalid",
+			"error", errs,
+		)
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Create group failed"})
+		return
+	}
+
+	var member []string
+	err := json.Unmarshal([]byte(data.Member), &member)
+	if err != nil {
+		slog.Error("Failed extract member of group",
+			"error", err,
+		)
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Failed extract member of group"})
+		return
+	}
+
+	imageData, err := base64.StdEncoding.DecodeString(data.GroupProfile)
+	if data.GroupProfile != "" && err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid image data"})
+		return
+	}
+
+	data.Creator = user
+
+	group, err := ph.userService.CreateGroup(ctx, data, imageData, member)
+	if err != nil {
+		slog.Error("Failed creating group",
+			"error", err,
+		)
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Failed saving group information"})
+		return
+	}
+
+	group.Messages, _ = ph.chatService.GetMessagesInsideGroup(ctx, group.ID)
+	chatList, err := ph.chatService.SearchChat(c, user.ID, "%%", "%%")
+	if err != nil {
+		slog.Error("Retrieving last messages",
+			"error", err,
+		)
+	}
+
+	views.Home(chatList, group).Render(c, c.Writer)
 }

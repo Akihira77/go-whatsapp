@@ -22,20 +22,24 @@ func isAuthenticated(ctx context.Context) bool {
 	return true
 }
 
-templ Home(users []types.UserDto, msgs []types.Message) {
+templ Home(chatList []types.ChatDto, newGroup *types.Group) {
 	@Page() {
 		if isAuthenticated(ctx) {
-			<div class="bg-gray-100 h-screen flex">
+			<div
+				id="main__home"
+				class="bg-gray-100 h-screen flex"
+			>
 				@components.MenuLeftSidebar()
-				@components.HomeSidebar(myInfo, users)
+				@components.HomeSidebar(myInfo, chatList)
 				<div
 					id="main__content"
 					class="flex-1 flex flex-col"
-				></div>
+				>
+					if (newGroup != nil) {
+						@components.GroupPage(myInfo, newGroup)
+					}
+				</div>
 			</div>
-			<script>
-
-        </script>
 		}
 	}
 }

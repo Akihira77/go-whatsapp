@@ -1,0 +1,167 @@
+package components
+
+templ NamingGroup() {
+	<div
+		id="main__sidebar"
+		class="w-1/4 bg-white border-r border-gray-300 flex flex-col p-8 relative"
+	>
+		<!-- Header -->
+		<div class="flex items-center gap-4 mb-8">
+			<button
+				class="text-gray-400 cursor-pointer"
+				hx-get="/groups"
+				hx-target="#main__sidebar"
+				hx-swap="outerHTML"
+			>
+				<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+				</svg>
+			</button>
+			<h1 class="text-xl font-medium">New group</h1>
+		</div>
+		<div class="relative group mx-auto w-[240px] h-[240px] flex flex-col justify-center items-center rounded-full border">
+			<!-- Hidden file input -->
+			<input
+				id="group__profile"
+				type="file"
+				name="group-profile"
+				class="hidden"
+				accept="image/*"
+			/>
+			<!-- Upload button/preview container -->
+			<label
+				for="group__profile"
+				class="block relative cursor-pointer"
+			>
+				<div class="w-[240px] h-[240px] rounded-full bg-dark-gray flex flex-col items-center justify-center overflow-hidden group-hover:opacity-90 transition-opacity">
+					<!-- Preview image container -->
+					<div id="preview-container" class="absolute inset-0 rounded-full w-full h-full">
+						<!-- Default icon shown when no image -->
+						<div class="absolute inset-0 flex flex-col items-center justify-center">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="w-8 h-8 text-gray-400 mb-1"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+								></path>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+								></path>
+							</svg>
+							<span class="text-xs text-gray-400 text-center">ADD GROUP<br/>ICON</span>
+						</div>
+					</div>
+				</div>
+				<!-- Hover overlay -->
+				<div class="absolute inset-0 bg-black/30 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						class="h-8 w-8 text-white"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+						></path>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+						></path>
+					</svg>
+				</div>
+			</label>
+		</div>
+		<!-- Group Subject Input -->
+		<div class="my-8">
+			<div class="relative">
+				<input
+					id="group__name"
+					name="groupName"
+					type="text"
+					placeholder="Group subject (optional)"
+					class="w-full bg-transparent border-b border-teal-500 px-1 pb-2 focus:outline-none focus:border-teal-400 placeholder-gray-500"
+					required
+				/>
+				<div class="absolute right-0 top-0">
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+					</svg>
+				</div>
+			</div>
+		</div>
+		<!-- Submit Button -->
+		<div class="absolute bottom-8 left-42">
+			<button
+				class="cursor-pointer w-14 h-14 bg-teal-500 rounded-full flex items-center justify-center hover:bg-teal-600 transition-colors"
+				onclick="handleCreateGroup()"
+			>
+				<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+				</svg>
+			</button>
+		</div>
+		<script>
+        document.getElementById("group__profile").addEventListener('change', async function(e) {
+            const previewContainer = document.getElementById('preview-container');
+            const file = e.target.files[0];
+            console.log("uploaded file", file);
+            if (file) {
+                const fileBuffer = await file.arrayBuffer();
+                const reader = new FileReader();
+
+                reader.onload = function(e) {
+                    // Create image preview
+                    previewContainer.innerHTML = `
+                        <img src="${e.target.result}" 
+                             class="rounded-full w-full h-full object-cover" 
+                             alt="Profile preview">
+                    `;
+                }
+                reader.readAsDataURL(file);
+
+                uploadedGroupProfile = await arrayBufferToBase64(fileBuffer);
+                console.log("uploaded group profile", uploadedGroupProfile);
+            }
+        });
+
+        function handleCreateGroup() {
+            if (userList.size < 1) {
+                alert("Cannot create group with just you as member");
+                return;
+            }
+            const groupName = document.getElementById("group__name").value;
+            console.log("uploaded group profile", uploadedGroupProfile);
+            console.log("userlist keys", Array.from(userList.keys()));
+
+            htmx.ajax("POST", "/groups", {
+                headers: {"Content-Type": "application/json"},
+                target: "#body", 
+                swap: "innerHTML", 
+                values: {
+                    name: groupName,
+                    groupProfile: uploadedGroupProfile,
+                    member: JSON.stringify(Array.from(userList.keys())),
+                },
+            }).then(() => {
+                userList.clear();
+            });
+        }
+    </script>
+	</div>
+}

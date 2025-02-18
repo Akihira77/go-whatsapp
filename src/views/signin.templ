@@ -9,6 +9,7 @@ templ Signin() {
 					id="signin__form"
 					class="space-y-4"
 					hx-post="/api/users/signin"
+					hx-ext="ignore:json-enc"
 					method="post"
 				>
 					<div

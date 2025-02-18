@@ -10,6 +10,7 @@ templ EditUser() {
 						id="updateProfileForm"
 						class="space-y-4"
 						enctype="multipart/form-data"
+						hx-ext="ignore:json-enc"
 						hx-patch="/api/users"
 					>
 						<div class="space-y-2">
@@ -75,8 +76,9 @@ templ EditUser() {
             });
 
             window.addEventListener("beforeunload", function (event) {
+                event.preventDefault();
                 if (isFormDirty) {
-                    event.preventDefault();
+                    console.log("is form dirty");
                     event.returnValue = "You have unsaved changes. Do you really want to leave?";
                 }
             });

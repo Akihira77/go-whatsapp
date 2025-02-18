@@ -235,7 +235,7 @@ func (c *Client) readPump(userService *services.UserService, chatService *servic
 		switch data.Type {
 		case MARK_MSGS_AS_READ:
 			slog.Info("Marking message as read")
-			_, err := chatService.MarkMessagesAsRead(context.Background(), data.Body.SenderID, c.UserID)
+			_, err := chatService.MarkMessagesAsRead(context.Background(), data.Body.SenderID, c.UserID, data.Body.GroupID)
 			if err != nil {
 				slog.Error("Marking messages as read",
 					"error", err,
@@ -248,12 +248,13 @@ func (c *Client) readPump(userService *services.UserService, chatService *servic
 			)
 		case PEER_CHAT:
 			data.Body.SenderID = c.UserID
-			slog.Info("Adding message")
+			slog.Info("Adding message PEER CHAT")
 
 			m, err := chatService.AddMessage(context.Background(), &types.CreateMessage{
 				Content:    data.Body.Content,
 				SenderID:   data.Body.SenderID,
 				ReceiverID: data.Body.ReceiverID,
+				GroupID:    data.Body.GroupID,
 			})
 			if err != nil {
 				slog.Error("Adding message",
@@ -264,6 +265,23 @@ func (c *Client) readPump(userService *services.UserService, chatService *servic
 
 			data.Body.CreatedAt = &m.CreatedAt
 		case GROUP_CHAT:
+			data.Body.SenderID = c.UserID
+			slog.Info("Adding message GROUP CHAT")
+
+			m, err := chatService.AddMessage(context.Background(), &types.CreateMessage{
+				Content:    data.Body.Content,
+				SenderID:   data.Body.SenderID,
+				ReceiverID: data.Body.ReceiverID,
+				GroupID:    data.Body.GroupID,
+			})
+			if err != nil {
+				slog.Error("Adding message",
+					"error", err,
+				)
+				return
+			}
+
+			data.Body.CreatedAt = &m.CreatedAt
 		default:
 			slog.Error("Unknown message type")
 			return

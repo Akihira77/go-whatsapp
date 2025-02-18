@@ -32,6 +32,21 @@ func (cr *ChatRepository) GetMessages(ctx context.Context, userIds [2]string) ([
 	return msgs, res.Error
 }
 
+func (cr *ChatRepository) GetMessagesInsideGroup(ctx context.Context, groupId string) ([]types.Message, error) {
+	var msgs []types.Message
+
+	res := cr.
+		store.
+		DB.
+		Debug().
+		Model(&types.Message{}).
+		WithContext(ctx).
+		Where("group_id", groupId).
+		Find(&msgs)
+
+	return msgs, res.Error
+}
+
 func (cr *ChatRepository) SearchMessageInsideChat(ctx context.Context, userIds []string, content string) ([]types.Message, error) {
 	var msgs []types.Message
 
@@ -53,30 +68,36 @@ func (cr *ChatRepository) SearchMessageInsideChat(ctx context.Context, userIds [
 	return msgs, res.Error
 }
 
-func (cr *ChatRepository) SearchChat(ctx context.Context, myUserId, name string) ([]types.UserDto, error) {
-	var chatHistories []types.UserDto
+func (cr *ChatRepository) SearchChat(ctx context.Context, myUserId, groupName, userName string) ([]types.ChatDto, error) {
+	var chatHistories []types.ChatDto
 
 	res := cr.
 		store.
 		DB.
 		Debug().
-		Model(&types.Message{}).
+		Model(&types.Group{}).
 		WithContext(ctx).
-		Joins("JOIN users ON users.id = messages.sender_id").
-		Where(
-			"messages.receiver_id = ? AND (users.first_name || ' ' || users.last_name) LIKE ?",
-			myUserId,
-			"%"+name+"%",
-		).
-		Order("messages.created_at DESC").
+		Joins("LEFT JOIN user_groups ON user_groups.group_id = groups.id").
+		Joins("LEFT JOIN messages ON messages.group_id = groups.id").
+		Joins("LEFT JOIN users ON users.id = messages.sender_id").
 		Select(
-			"users.id AS id",
-			"users.first_name || ' ' || users.last_name AS full_name",
-			"users.image_url",
-			"users.status",
-			"SUM(CASE WHEN messages.is_read = 0 THEN 1 ELSE 0 END) AS unread_chat_count",
+			"(CASE WHEN groups.name IS NULL THEN users.id ELSE NULL END) AS sender_id",
+			"(CASE WHEN groups.name IS NULL THEN users.first_name || ' ' || users.last_name ELSE NULL END) AS user_name",
+			"(CASE WHEN groups.name IS NULL THEN users.image_url ELSE NULL END) AS user_profile",
+			"COUNT(CASE WHEN messages.is_read = 0 AND messages.sender_id = users.id AND messages.receiver_id IS NOT NULL THEN 1 END) AS unread_peer_chat",
+			"groups.id AS group_id",
+			"groups.name AS group_name",
+			"groups.group_profile",
+			"COUNT(CASE WHEN messages.is_read = 0 AND messages.group_id = groups.id AND messages.group_id IS NOT NULL THEN 1 END) AS unread_group_chat",
 		).
-		Group("users.id").
+		Where(
+			"(messages.receiver_id = ? AND (users.first_name || ' ' || users.last_name) LIKE ?) OR groups.name LIKE ?",
+			myUserId,
+			userName,
+			groupName,
+		).
+		Group("users.id, groups.id").
+		Order("MAX(messages.created_at) DESC").
 		Find(&chatHistories)
 
 	return chatHistories, res.Error
@@ -115,13 +136,13 @@ func (cr *ChatRepository) HardDeleteMessage(ctx context.Context, msgId string) e
 	return res.Error
 }
 
-func (cr *ChatRepository) MarkMessagesAsRead(ctx context.Context, senderId, receiverId string) error {
+func (cr *ChatRepository) MarkMessagesAsRead(ctx context.Context, senderId, receiverId, groupId string) error {
 	res := cr.
 		store.
 		DB.
 		Model(&types.Message{}).
 		WithContext(ctx).
-		Where("(sender_id = ? AND receiver_id = ?) AND is_read = false", senderId, receiverId).
+		Where("(sender_id = ? AND receiver_id = ? AND group_id = ?) AND is_read = false", senderId, receiverId, groupId).
 		Update("is_read", true)
 
 	return res.Error
