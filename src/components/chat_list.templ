@@ -1,0 +1,126 @@
+package components
+
+import (
+	"fmt"
+	"github.com/Akihira77/go_whatsapp/src/types"
+	"strconv"
+)
+
+templ ChatList(chatList []types.ChatDto) {
+	for i, chat := range chatList {
+		if chat.GroupID != "" {
+			<div
+				id={ fmt.Sprintf("group__chat__%s", chat.GroupID) }
+				data-group-id={ chat.GroupID }
+				if i & 1 == 1 {
+					class="chat__user flex items-center p-3 bg-slate-100 hover:bg-slate-300 cursor-pointer relative"
+				} else {
+					class="chat__user flex items-center p-3 bg-slate-200 hover:bg-slate-300 cursor-pointer relative"
+				}
+			>
+				<div
+					class="relative"
+				>
+					<img src={ fmt.Sprintf("/api/groups/images/%s", chat.GroupID) } alt="Group Profile" class="w-12 h-12 rounded-full"/>
+				</div>
+				<div class="flex-1 ml-3">
+					<h3 class="text-sm font-semibold">{ chat.GroupName }</h3>
+				</div>
+				<div
+					id={ fmt.Sprintf("unread__group__chat__%s", chat.GroupID) }
+					if chat.UnreadGroupChat > 0 {
+						class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full"
+					} else {
+						class="invisible"
+					}
+				>
+					{ strconv.Itoa(chat.UnreadGroupChat) }
+				</div>
+			</div>
+		} else if chat.SenderID != "" {
+			<div
+				id={ fmt.Sprintf("user__chat__%s", chat.SenderID) }
+				data-user-id={ chat.SenderID }
+				if i & 1 == 1 {
+					class="chat__user flex items-center p-3 bg-slate-100 hover:bg-slate-300 cursor-pointer relative"
+				} else {
+					class="chat__user flex items-center p-3 bg-slate-200 hover:bg-slate-300 cursor-pointer relative"
+				}
+			>
+				<div
+					class="relative"
+				>
+					<img src={ fmt.Sprintf("/api/users/images/%s", chat.SenderID) } alt="Contact" class="w-12 h-12 rounded-full"/>
+					if chat.UserStatus == types.ONLINE {
+						<div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+					} else {
+						<div class="absolute bottom-0 right-0 w-3 h-3 bg-slate-500 rounded-full border-2 border-white"></div>
+					}
+				</div>
+				<div class="flex-1 ml-3">
+					<h3 class="text-sm font-semibold">{ chat.UserName }</h3>
+				</div>
+				<div
+					id={ fmt.Sprintf("unread__peer__chat__%s", chat.SenderID) }
+					if chat.UnreadPeerChat > 0 {
+						class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full"
+					} else {
+						class="invisible"
+					}
+				>
+					{ strconv.Itoa(chat.UnreadPeerChat) }
+				</div>
+			</div>
+		}
+	}
+	<script>
+        document.querySelectorAll('.chat__user').forEach(userElement => {
+            userElement.addEventListener('click', function () {
+                const userId = this.getAttribute("data-user-id");
+                const groupId = this.getAttribute("data-group-id");
+
+                if (userId !== "" && userId !== lastActiveChatId) {
+                    htmx.ajax("GET", `/chat?userId=${userId}`, {target:"#main__content", swap:"innerHTML"}).then(() => {
+                        const unreadPeerChat = document.getElementById(`unread__peer__chat__${userId}`);
+                        unreadPeerChat.innerHTML = 0;
+                        unreadPeerChat.className = "invisible";
+                    });
+                    lastActiveChatId = userId;
+                } else if (groupId !== "" && groupId !== lastActiveChatId) {
+                    htmx.ajax("GET", `/chat?groupId=${groupId}`, {target:"#main__content", swap:"innerHTML"}).then(() => {
+                        const unreadGroupChat = document.getElementById(`unread__group__chat__${groupId}`);
+                        unreadGroupChat.innerHTML = 0;
+                        unreadGroupChat.className = "invisible";
+                    });
+                    lastActiveChatId = groupId;
+                }
+            });
+        });
+
+        webSocket.onMessage((data) => {
+            const myUserId = getCookieByName("userId");
+            if (data.type === "PEER_CHAT") {
+                appendPeerMessage(myUserId, data.body.senderId, data.body.content, data.body.createdAt);
+
+                if (data.body.senderId !== myUserId) {
+                    const sender = document.getElementById(`unread__peer__chat__${data.body.senderId}`);
+                    if (sender) {
+                        sender.innerHTML = parseInt(sender.innerHTML) + 1;
+                        sender.className = "absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full";
+                    }
+                }
+            } else if (data.type === "GROUP_CHAT") {
+                appendGroupMessage(myUserId, data.body.senderId, data.body.content, data.body.createdAt);
+
+                if (data.body.senderId !== myUserId) {
+                    const group = document.getElementById(`unread__group__chat__${data.body.senderId}`);
+                    if (group) {
+                        group.innerHTML = parseInt(sender.innerHTML) + 1;
+                        group.className = "absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full";
+                    }
+                }
+            }
+        });
+
+    </script>
+}

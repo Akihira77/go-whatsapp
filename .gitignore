@@ -3,3 +3,6 @@
 tmp
 go.sum
 *.db
+*_templ.go
+*_templ.txt
+tailwindcss

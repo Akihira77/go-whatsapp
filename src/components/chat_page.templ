@@ -1,0 +1,229 @@
+package components
+
+import (
+	"fmt"
+	"github.com/Akihira77/go_whatsapp/src/types"
+	"github.com/Akihira77/go_whatsapp/src/utils"
+)
+
+templ ChatPage(receiver *types.User, msgs []types.Message) {
+	<!-- Chat Header -->
+	<div class="bg-gray-200 p-4 flex items-center">
+		<div class="relative">
+			<img src={ fmt.Sprintf("/api/users/images/%s", receiver.ID) } alt="Profile" class="w-12 h-12 rounded-full object-cover"/>
+			if receiver.Status == types.ONLINE {
+				<div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+			} else {
+				<div class="absolute bottom-0 right-0 w-3 h-3 bg-slate-500 rounded-full border-2 border-white"></div>
+			}
+		</div>
+		<div class="flex-1 ml-2">
+			<h2 class="font-semibold">{ utils.GetFullName(receiver) }</h2>
+			if receiver.Status == types.ONLINE {
+				<p class="text-xs text-green-600">Online</p>
+			} else {
+				<p class="text-xs text-slate-600">Offline</p>
+			}
+		</div>
+		<div class="flex space-x-4 mr-2">
+			<div>
+				<i class="fas fa-search text-gray-600"></i>
+			</div>
+			<div class="relative">
+				<button id="chat__toggle" class="cursor-pointer focus:outline-none">
+					<i class="fas fa-ellipsis-v text-gray-600"></i>
+				</button>
+				<ul id="chat__menu" class="absolute z-100 right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden">
+					<li>
+						<button
+							class="cursor-pointer w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+							hx-get={ fmt.Sprintf("/users/%s", receiver.ID) }
+							hx-target="#right__sidebar"
+							hx-swap="outerHTML"
+						>
+							Contact Info
+						</button>
+					</li>
+					<li>
+						<button
+							class="cursor-pointer w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+							hx-delete={ fmt.Sprintf("/chat/clear?user=%s", receiver.ID) }
+							hx-confirm="Clear this chat?"
+						>
+							Clear Chat
+						</button>
+					</li>
+					<li>
+						<button
+							class="cursor-pointer w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+							hx-delete={ fmt.Sprintf("/chat/%s", receiver.ID) }
+							hx-confirm="Delete this chat?"
+						>
+							Delete Chat
+						</button>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</div>
+	<!-- Chat Messages -->
+	<div
+		id="chat"
+		class="flex-1 bg-[#e5ddd5] overflow-y-auto p-4"
+	>
+		<!-- Messages will go here -->
+		for _, msg := range msgs {
+			if msg.SenderID != receiver.ID {
+				<div
+					id="sender__message"
+					class="bg-emerald-800 text-white rounded-lg p-2 mb-2 max-w-[70%] ml-auto relative"
+				>
+					<p class="text-sm">{ msg.Content }</p>
+					<span class="text-xs absolute bottom-1 right-4">{ msg.CreatedAt.Format("2/1/2006 3:04 PM") }</span>
+				</div>
+			} else {
+				<div
+					id="receiver__message"
+					class="bg-slate-800 text-white rounded-lg p-2 mb-2 max-w-[70%] relative"
+				>
+					<p class="text-sm">{ msg.Content }</p>
+					<span class="text-xs absolute bottom-1 right-4">{ msg.CreatedAt.Format("2/1/2006 3:04 PM") }</span>
+				</div>
+			}
+		}
+	</div>
+	<!-- Message Input -->
+	<form
+		id="chat__form"
+		class="bg-gray-200 p-4 flex items-center"
+		method="post"
+		hx-ext="ignore:json-enc"
+		data-receiver-id={ receiver.ID }
+		data-receiver-status={ string(receiver.Status) }
+	>
+		<div
+			data-for="chatInput"
+			class="flex w-full items-center"
+		>
+			<i class="fas fa-smile text-gray-600 mr-4"></i>
+			<i class="fas fa-paperclip text-gray-600 mr-4"></i>
+			<textarea
+				id="chat__input"
+				name="chatInput"
+				placeholder="Type a message"
+				class="flex-1 py-2 px-4 bg-white rounded-md text-sm focus:outline-none resize-none overflow-auto min-h-[40px] max-h-[150px]"
+				autofocus
+				rows="1"
+				wrap="soft"
+				maxlength="999"
+				required
+			></textarea>
+			<i class="fas fa-microphone text-gray-600 ml-4"></i>
+		</div>
+	</form>
+	<script>
+        document.getElementById('chat__toggle')?.addEventListener('click', () => {
+            document.getElementById('chat__menu').classList.toggle('hidden');
+        });
+
+        window.addEventListener('click', (event) => {
+            const dropdownMenu = document.getElementById('chat__menu');
+            const chatToggle = document.getElementById('chat__toggle');
+            if (chatTogglej && dropdownMenu && !chatToggle.contains(event.target) && !dropdownMenu.contains(event.target)) {
+                dropdownMenu.classList.add('hidden');
+            }
+        });
+
+        document.body.addEventListener('htmx:configRequest', function(event) {
+            if (event.target.id === 'chat__form') {
+                event.preventDefault();  // This stops htmx from sending the request
+            }
+        });
+
+        function resizeTextarea() {
+            const textarea = document.getElementById('chat__input');
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
+        }
+
+        window.addEventListener('resize', resizeTextarea);
+
+        document.getElementById('chat__input').addEventListener("keyup", async (event) => {
+            event.preventDefault();
+
+            if (!hasTyped && event.key.length === 1) {
+                hasTyped = true;
+                const chatForm = document.getElementById("chat__form");
+                const receiverId = chatForm.getAttribute("data-receiver-id");
+
+                webSocket.sendMessage({
+                    type: "MARK_MSGS_AS_READ",
+                    body: {
+                        senderId: receiverId,
+                    },
+                })
+
+                const sender = document.getElementById(`unread__peer__chat__${receiverId}`);
+                if (sender) {
+                    sender.className = "invisible";
+                    sender.innerHTML = 0;
+                }
+            }
+
+            resizeTextarea();
+        });
+        resizeTextarea();
+
+        document.getElementById("chat__form").addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            const chatForm = document.getElementById("chat__form");
+            const receiverId = chatForm.getAttribute("data-receiver-id");
+            const receiverStatus = chatForm.getAttribute("data-receiver-status");
+            let chatInput = document.getElementById("chat__input");
+            const myUserId = getCookieByName("userId");
+            if (!chatInput.value.trim()) return; // Prevent empty messages
+
+            webSocket.sendMessage({
+                type: "PEER_CHAT",
+                body: {
+                    receiverId: receiverId,
+                    content: chatInput.value
+                },
+            });
+
+            chatInput.value = '';
+            hasTyped = false;
+        });
+
+        function scrollToBottom() {
+            const chatContainer = document.getElementById("chat");
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Append message to the chat box
+        function appendPeerMessage(myUserId, senderId, content, createdAt) {
+            const date = new Date(createdAt);
+            const chatContainer = document.getElementById("chat");
+            const formattedDate = date.toLocaleString('en-US', {
+                day: 'numeric',
+                month: 'numeric',
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            }).replace('am', 'AM').replace('pm', 'PM');
+
+            const newMsg = `
+                <div class="${myUserId === senderId? "bg-emerald-800 ml-auto" : "bg-slate-800"} text-white rounded-lg p-2 mb-2 max-w-[70%] relative">
+                    <p class="text-sm">${content}</p>
+                    <span class="text-xs absolute bottom-1 right-4">${formattedDate}</span>
+                </div>
+            `;
+            document.getElementById('chat').insertAdjacentHTML('beforeend', newMsg);
+            scrollToBottom();
+        }
+
+        scrollToBottom();
+    </script>
+}

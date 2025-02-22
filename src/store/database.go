@@ -3,6 +3,7 @@ package store
 import (
 	"log"
 	"log/slog"
+	"os"
 	"time"
 
 	"github.com/Akihira77/go_whatsapp/src/types"
@@ -15,13 +16,19 @@ type Store struct {
 }
 
 func NewStore() *Store {
-	db, err := gorm.Open(sqlite.Open("whatsapp.db"), &gorm.Config{
+	dbPath := os.Getenv("DB_SQLITE")
+	slog.Info("database",
+		"path", dbPath,
+	)
+	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{
 		SkipDefaultTransaction: true,
 		PrepareStmt:            true,
 	})
 	if err != nil {
 		log.Fatalf("Error connecting to database: %v", err)
 	}
+
+	db.Exec("PRAGMA foreign_keys = ON;")
 
 	sqlDB, err := db.DB()
 
@@ -45,6 +52,8 @@ func (s *Store) Migrate() {
 		&types.UserContact{},
 		&types.File{},
 		&types.Message{},
+		&types.Group{},
+		&types.UserGroup{},
 	)
 
 	if err != nil {

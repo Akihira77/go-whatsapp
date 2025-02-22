@@ -1,0 +1,45 @@
+package views
+
+import (
+	"context"
+	"github.com/Akihira77/go_whatsapp/src/components"
+	"github.com/Akihira77/go_whatsapp/src/types"
+	"log/slog"
+)
+
+var myInfo *types.User
+
+func isAuthenticated(ctx context.Context) bool {
+	data, ok := ctx.Value("user").(*types.User)
+	if !ok || data == nil {
+		slog.Error("invalid context body",
+			"data", ctx.Value("user"),
+		)
+		return false
+	}
+
+	myInfo = data
+	return true
+}
+
+templ Home(chatList []types.ChatDto, newGroup *types.Group) {
+	@Page() {
+		if isAuthenticated(ctx) {
+			<div
+				id="main__home"
+				class="bg-gray-100 h-screen flex"
+			>
+				@components.MenuLeftSidebar()
+				@components.HomeSidebar(myInfo, chatList)
+				<div
+					id="main__content"
+					class="flex-1 flex flex-col"
+				>
+					if (newGroup != nil) {
+						@components.GroupPage(myInfo, newGroup)
+					}
+				</div>
+			</div>
+		}
+	}
+}

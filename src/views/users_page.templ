@@ -1,0 +1,24 @@
+package views
+
+import (
+	"github.com/Akihira77/go_whatsapp/src/components"
+	"github.com/Akihira77/go_whatsapp/src/types"
+)
+
+templ Users(users []types.User, q *types.UserQuerySearch) {
+	@Page() {
+		if isAuthenticated(ctx) {
+			<div
+				id="main__home"
+				class="bg-gray-100 h-screen flex"
+			>
+				@components.MenuLeftSidebar()
+				@components.UsersSidebar(myInfo, users, q)
+				<div
+					id="main__content"
+					class="flex-1 flex flex-col"
+				></div>
+			</div>
+		}
+	}
+}

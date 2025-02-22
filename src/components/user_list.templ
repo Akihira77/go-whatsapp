@@ -1,0 +1,29 @@
+package components
+
+import (
+	"fmt"
+	"github.com/Akihira77/go_whatsapp/src/types"
+	"github.com/Akihira77/go_whatsapp/src/utils"
+)
+
+templ UserList(users []types.User, q *types.UserQuerySearch, makeGroup bool) {
+	for _, user := range users {
+		<div
+			id={ user.ID }
+			data-name={ utils.GetFullName(&user) }
+			if !makeGroup {
+				hx-get={ fmt.Sprintf("/chat?userId=%s", user.ID) }
+				hx-target="#main__content"
+				hx-swap="innerHTML"
+			} else {
+				onclick="addThis(this)"
+			}
+			class="users flex items-center p-3 hover:bg-gray-100 cursor-pointer"
+		>
+			<img src={ fmt.Sprintf("/api/users/images/%s", user.ID) } alt="Contact" class="w-12 h-12 rounded-full mr-3"/>
+			<div class="flex-1">
+				<h3 class="text-sm font-semibold">{ utils.GetFullName(&user) }</h3>
+			</div>
+		</div>
+	}
+}
