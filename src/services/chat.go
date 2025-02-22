@@ -33,10 +33,23 @@ func (cs *ChatService) GetMessages(ctx context.Context, userOneId, userTwoId str
 	return msgs, err
 }
 
-func (cs *ChatService) SearchChat(ctx context.Context, myUserId, username string) ([]types.UserDto, error) {
+func (cs *ChatService) GetMessagesInsideGroup(ctx context.Context, groupId string) ([]types.Message, error) {
+	msgs, err := cs.
+		chatRepository.
+		GetMessagesInsideGroup(ctx, groupId)
+	if err != nil {
+		slog.Error("Retrieving messages inside group",
+			"error", err,
+		)
+	}
+
+	return msgs, err
+}
+
+func (cs *ChatService) SearchChat(ctx context.Context, myUserId, userName, groupName string) ([]types.ChatDto, error) {
 	chatHistories, err := cs.
 		chatRepository.
-		SearchChat(ctx, myUserId, username)
+		SearchChat(ctx, myUserId, groupName, userName)
 	if err != nil {
 		slog.Error("Retrieving last message on sidebar",
 			"error", err,
@@ -52,6 +65,7 @@ func (cs *ChatService) AddMessage(ctx context.Context, data *types.CreateMessage
 		Content:    data.Content,
 		SenderID:   data.SenderID,
 		ReceiverID: data.ReceiverID,
+		GroupID:    data.GroupID,
 		IsEdited:   false,
 		IsDeleted:  false,
 		IsRead:     false,
@@ -106,16 +120,20 @@ func (cs *ChatService) SoftDeleteMessage(ctx context.Context, data *types.Messag
 	return *data, err
 }
 
-func (cs *ChatService) MarkMessagesAsRead(ctx context.Context, senderId, receiverId string) ([]types.Message, error) {
+func (cs *ChatService) MarkMessagesAsRead(ctx context.Context, senderId, receiverId, groupId string) ([]types.Message, error) {
 	err := cs.
 		chatRepository.
-		MarkMessagesAsRead(ctx, senderId, receiverId)
+		MarkMessagesAsRead(ctx, senderId, receiverId, groupId)
 	if err != nil {
 		slog.Error("Marking messages as read failed",
 			"sender", senderId,
 			"receiver", receiverId,
 		)
 		return []types.Message{}, err
+	}
+
+	if groupId != "" {
+		return cs.GetMessagesInsideGroup(ctx, groupId)
 	}
 
 	return cs.GetMessages(ctx, senderId, receiverId)

@@ -1,0 +1,351 @@
+package components
+
+import (
+	"fmt"
+	"github.com/Akihira77/go_whatsapp/src/types"
+	"github.com/Akihira77/go_whatsapp/src/utils"
+	"strconv"
+)
+
+templ GroupInfo(g *types.Group) {
+	<div class="fixed right-0 top-0 h-full w-[400px] bg-white shadow-lg overflow-y-auto">
+		<!-- New Header Section -->
+		<div class="flex items-center gap-4 p-4 sticky top-0 z-10">
+			<button
+				id="closeButton"
+				class="hover:bg-slate-300 cursor-pointer rounded-full p-1 transition-colors"
+				onclick="handleGroupInfo('close')"
+			>
+				<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+				</svg>
+			</button>
+			<h1 class="text-lg font-medium">Group info</h1>
+		</div>
+		<!-- Group Profile Section -->
+		<div
+			id="body"
+			class="relative p-4 border-b"
+		>
+			<div class="relative w-40 h-40 mx-auto mb-4">
+				<img src={ fmt.Sprintf("/api/groups/images/%s", g.ID) } alt="Group Profile" class="w-full h-full object-cover rounded-full"/>
+				<button id="profileMenu" class="cursor-pointer absolute bottom-0 right-0 bg-[#128C7E] text-white p-2 rounded-full">
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+					</svg>
+				</button>
+				<div id="profileDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
+					<a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">View photo</a>
+					<a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Upload photo</a>
+					<a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Remove photo</a>
+				</div>
+			</div>
+			<div class="flex items-center justify-center gap-2 mb-1">
+				<div id="groupNameContainer" class="text-center">
+					<h2 id="groupNameText" class="text-2xl font-bold">{ g.Name }</h2>
+					<input
+						type="text"
+						id="groupNameInput"
+						data-group-id={ g.ID }
+						class="hidden text-2xl font-bold text-center w-full border-b border-emerald-500 outline-none"
+						value={ g.Name }
+					/>
+				</div>
+				<button id="editGroupName" class="cursor-pointer text-gray-500 hover:text-emerald-500">
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+					</svg>
+				</button>
+			</div>
+			<p class="text-center text-gray-500 mb-2">
+				<span id="memberCount">{ strconv.Itoa(g.UserCount + 1) }</span>
+				if g.UserCount > 0 {
+					members
+				} else {
+					member
+				}
+			</p>
+		</div>
+		<!-- Group Description Section -->
+		<div class="p-4 border-b">
+			<h3 class="text-lg font-semibold mb-2">Group Description</h3>
+			<div class="flex items-start gap-2">
+				<div id="groupDescContainer" class="flex-1">
+					if g.Description == "" {
+						<p
+							id="groupDescText"
+							class="text-emerald-600 mb-2 underline"
+							onclick="handleEditDesciption()"
+						>Click to add group description</p>
+					} else {
+						<p id="groupDescText" class="text-gray-600 mb-2">{ g.Description }</p>
+					}
+					<textarea
+						id="groupDescInput"
+						data-group-id={ g.ID }
+						class="hidden w-full min-h-[100px] p-2 text-gray-600 border rounded-md resize-none"
+						placeholder="Add group description"
+						value={ g.Description }
+					></textarea>
+				</div>
+				<button
+					id="editGroupDesc"
+					class="cursor-pointer text-gray-500 hover:text-emerald-500 pt-1"
+					onclick="handleEditDesciption()"
+				>
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+					</svg>
+				</button>
+			</div>
+		</div>
+		<!-- Member Section -->
+		<div class="p-4 border-b">
+			<div class="flex justify-between items-center mb-4">
+				<h3 class="text-lg font-semibold">Members</h3>
+				<span id="memberCount" class="text-sm text-gray-500">
+					if g.UserCount > 0 {
+						{ fmt.Sprintf("%d members", g.UserCount + 1) }
+					} else {
+						{ fmt.Sprintf("%d member", g.UserCount + 1) }
+					}
+				</span>
+			</div>
+			<ul id="memberList" class="space-y-2">
+				for i, member := range g.Member {
+					<li
+						id={ fmt.Sprintf("member__%s", g.Creator.ID) }
+						class="flex justify-between p-2 rounded-md hover:bg-gray-100 transition duration-300"
+					>
+						<div class="flex items-center">
+							<img src={ fmt.Sprintf("/api/users/images/%s", g.Creator.ID) } alt="Profile" class="w-10 h-10 rounded-full mr-3"/>
+							<span>{ utils.GetFullName(g.Creator) }</span>
+						</div>
+						<div class="flex items-center">
+							<span class="text-emerald-700 text-xs">Admin</span>
+						</div>
+					</li>
+					if i < 10 && member.User.ID != g.Creator.ID {
+						<li
+							id={ fmt.Sprintf("member__%s", member.User.ID) }
+							class="flex items-center p-2 rounded-md hover:bg-gray-100 transition duration-300"
+						>
+							<img src={ fmt.Sprintf("/api/users/images/%s", member.User.ID) } alt="Profile" class="w-10 h-10 rounded-full mr-3"/>
+							<span>{ utils.GetFullName(&member.User) }</span>
+						</li>
+					}
+				}
+			</ul>
+			<button
+				id="viewMoreMembers"
+				data-group-id={ g.ID }
+				class="cursor-pointer mt-4 w-full bg-gray-100 text-gray-700 py-2 rounded-md hover:bg-gray-200 transition duration-300"
+			>
+				View more members
+			</button>
+		</div>
+		<!-- Option Section -->
+		<div class="p-4">
+			<button
+				id="exitGroup"
+				class="cursor-pointer w-full bg-red-500 text-white py-2 rounded-md hover:bg-red-600 transition duration-300"
+				hx-delete={ fmt.Sprintf("/groups/%s", g.ID) }
+				hx-confirm={ fmt.Sprintf("Exit '%s' group?", g.Name) }
+			>
+				Exit Group
+			</button>
+		</div>
+		<!-- Modal for all members -->
+		<div id="allMembersModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center">
+			<div class="bg-white px-6 py-4 rounded-lg w-96 max-h-[80vh] overflow-y-auto">
+				<div class="flex items-center gap-4 px-2 py-4 sticky top-0 z-10">
+					<button
+						id="closeModal"
+						class="hover:bg-slate-300 cursor-pointer rounded-full p-1 transition-colors"
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+						</svg>
+					</button>
+					<h2 class="text-2xl font-bold">All Members</h2>
+				</div>
+				<input type="text" id="modalMemberSearch" placeholder="Search members" class="w-full px-3 py-2 border rounded-md mb-4"/>
+				<ul id="modalMemberList" class="space-y-2">
+					<!-- All members will be listed here -->
+				</ul>
+			</div>
+		</div>
+	</div>
+	<script>
+        // Toggle profile dropdown
+        document.getElementById('profileMenu').addEventListener('click', function() {
+            document.getElementById('profileDropdown').classList.toggle('hidden');
+        });
+
+        // Group Name Edit Functionality
+        const groupNameText = document.getElementById('groupNameText');
+        const groupNameInput = document.getElementById('groupNameInput');
+        const editGroupName = document.getElementById('editGroupName');
+
+        editGroupName.addEventListener('click', () => {
+            groupNameText.classList.add('hidden');
+            groupNameInput.classList.remove('hidden');
+            groupNameInput.focus();
+        });
+
+        groupNameInput.addEventListener('blur', () => {
+            groupNameText.classList.remove('hidden');
+            groupNameInput.classList.add('hidden');
+            if (groupNameInput.value.trim() !== '') {
+                groupNameText.textContent = groupNameInput.value;
+            }
+        });
+
+        groupNameInput.addEventListener('keyup', async (e) => {
+            if (e.key === 'Escape') {
+                groupNameInput.value = groupNameText.textContent; // Revert to previous value
+                groupNameInput.blur();
+            } else if (!e.shiftKey && e.keyCode === 13) {
+                const groupId = e.target.getAttribute("data-group-id");
+                console.log("group id", groupId);
+                console.log("group name", e.target.value);
+                const res = await fetch(`http://${window.location.host}/api/groups/${groupId}`, {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        editName: true,
+                        name: e.target.value
+                    })
+                });
+
+                if (!res.ok) {
+                    alert("Editing group failed");
+                }
+
+                groupDescInput.blur();
+            }
+        });
+
+        // Group Description Edit Functionality
+        const groupDescText = document.getElementById('groupDescText');
+        const groupDescInput = document.getElementById('groupDescInput');
+
+        function handleEditDescription() {
+            groupDescText.classList.add('hidden');
+            groupDescInput.classList.remove('hidden');
+            groupDescInput.value = groupDescText.textContent;
+            groupDescInput.focus();
+        }
+
+        groupDescInput.addEventListener('blur', () => {
+            groupDescText.classList.remove('hidden');
+            groupDescInput.classList.add('hidden');
+            if (groupDescInput.value.trim() !== '') {
+                groupDescText.textContent = groupDescInput.value;
+            }
+        });
+
+        groupDescInput.addEventListener('keydown', async (e) => {
+            if (e.key === 'Escape') {
+                groupDescInput.value = groupDescText.textContent; // Revert to previous value
+                groupDescInput.blur();
+            } else if (!e.shiftKey && e.keyCode === 13) {
+                console.log("key pressed", e);
+                console.log("hit enter");
+
+                const groupId = e.target.getAttribute("data-group-id");
+                console.log("group id", groupId);
+                console.log("group desc", e.target.value);
+                const res = await fetch(`http://${window.location.host}/api/groups/${groupId}`, {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        editDescription: true,
+                        description: e.target.value
+                    })
+                });
+
+                if (!res.ok) {
+                    alert("Editing group failed");
+                }
+
+                groupDescInput.blur();
+            }
+        });
+
+        // Member data (example)
+        let allMembers = [];
+
+        const modalMemberList = document.getElementById('modalMemberList');
+        const memberCount = document.getElementById('memberCount');
+        const viewMoreButton = document.getElementById('viewMoreMembers');
+        const modal = document.getElementById('allMembersModal');
+        const closeModalButton = document.getElementById('closeModal');
+        const memberSearch = document.getElementById('memberSearch');
+        const modalMemberSearch = document.getElementById('modalMemberSearch');
+
+        // Function to create member list item
+        function createMemberItem(member) {
+            const li = document.createElement('li');
+            li.className = 'flex items-center p-2 rounded-md hover:bg-gray-100 transition duration-300';
+            let imageUrl = `/api/users/images/${member.user.id}`;
+            li.innerHTML = `
+                <img src="${imageUrl}" alt="Profile" class="w-10 h-10 rounded-full mr-3">
+                <span>${member.user.firstName + ' ' + member.user.lastName}</span>
+            `;
+            return li;
+        }
+
+        // Function to filter members
+        function filterMembers(members, searchTerm) {
+            return members.filter(member => {
+                let fullName = member.user.firstName + ' ' + member.user.lastName;
+                return fullName.toLowerCase().includes(searchTerm.toLowerCase())
+            });
+        }
+
+        // Populate member list (first 10 members)
+        function populateMemberList(members, listElement, limit = 10) {
+            listElement.innerHTML = '';
+            members.slice(0, limit).forEach(member => {
+                listElement.appendChild(createMemberItem(member));
+            });
+        }
+
+        // View more button click handler
+        viewMoreButton.addEventListener('click', async () => {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            const groupId = viewMoreButton.getAttribute('data-group-id');
+            const res = await fetch(`http://${window.location.host}/api/groups/${groupId}/members`);
+
+            if (!res.ok) {
+                alert("Failed retrieving members of this group");
+                return;
+            }
+
+            const resJson = await res.json();
+
+            allMembers = resJson.members;
+            populateMemberList(allMembers, modalMemberList);
+        });
+
+        // Close modal button click handler
+        closeModalButton.addEventListener('click', () => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        });
+
+        // Search functionality for modal
+        modalMemberSearch.addEventListener('input', (e) => {
+            const searchTerm = e.target.value;
+            const filteredMembers = filterMembers(allMembers, searchTerm);
+            populateMemberList(filteredMembers, modalMemberList);
+        });
+    </script>
+}

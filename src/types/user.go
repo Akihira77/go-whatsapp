@@ -15,46 +15,56 @@ const (
 
 // INFO: TABLE MODELS
 type User struct {
-	ID         string     `json:"id" gorm:"primaryKey"`
-	FirstName  string     `json:"firstName"`
-	LastName   string     `json:"lastName"`
-	Email      string     `json:"email"`
-	Password   string     `json:"password"`
-	ImageUrl   []byte     `json:"imageUrl"`
-	Status     UserStatus `json:"userStatus"`
+	ID         string     `json:"id" gorm:"not null;primaryKey"`
+	FirstName  string     `json:"firstName" gorm:"not null;index:user_name"`
+	LastName   string     `json:"lastName" gorm:"not null;index:user_name"`
+	Email      string     `json:"email" gorm:"not null;uniqueindex"`
+	Password   string     `json:"password" gorm:"not null"`
+	ImageUrl   []byte     `json:"imageUrl" gorm:""`
+	Status     UserStatus `json:"userStatus" gorm:"not null"`
 	LastOnline time.Time  `json:"lastOnline"`
-	CreatedAt  time.Time  `json:"createdAt"`
+	CreatedAt  time.Time  `json:"createdAt" gorm:"not null"`
 }
 
 type UserContact struct {
-	UserOneID string    `json:"userOneId" gorm:"primaryKey"`
+	UserOneID string    `json:"userOneId" gorm:"not null;primaryKey"`
 	UserOne   User      `json:"userOne"`
-	UserTwoID string    `json:"userTwoId" gorm:"primaryKey"`
+	UserTwoID string    `json:"userTwoId" gorm:"not null;primaryKey"`
 	UserTwo   User      `json:"userTwo"`
-	CreatedAt time.Time `json:"createdAt"`
+	CreatedAt time.Time `json:"createdAt" gorm:"not null"`
 }
 
 type Group struct {
-	ID        string    `json:"id" gorm:"primaryKey"`
-	Name      string    `json:"name" gorm:"index"`
-	UserCount int       `json:"userCount"`
-	CreatedAt time.Time `json:"createdAt"`
+	ID           string      `json:"id" gorm:"not null;primaryKey"`
+	Name         string      `json:"name" gorm:"not null;index"`
+	Description  string      `json:"description"`
+	UserCount    int         `json:"userCount" gorm:"not null"`
+	Member       []UserGroup `json:"member,omitempty" gorm:"foreignKey:GroupID;references:ID"`
+	CreatorID    string      `json:"creatorId" gorm:"not null"`
+	Creator      *User       `json:"creator,omitempty"`
+	GroupProfile []byte      `json:"groupProfile,omitempty"`
+	Messages     []Message   `json:"messages"`
+	CreatedAt    time.Time   `json:"createdAt" gorm:"not null"`
 }
 
 type UserGroup struct {
-	UserID  string `json:"userId" gorm:"primaryKey"`
+	UserID  string `json:"userId" gorm:"not null;primaryKey"`
 	User    User   `json:"user,omitempty"`
-	GroupID string `json:"groupId" gorm:"primaryKey"`
+	GroupID string `json:"groupId" gorm:"not null;primaryKey"`
 	Group   Group  `json:"group,omitempty"`
 }
 
 // INFO: Data Transfer Object
-type UserDto struct {
-	ID              string     `json:"id" gorm:"primaryKey"`
-	FullName        string     `json:"fullName"`
-	ImageUrl        []byte     `json:"imageUrl"`
-	Status          UserStatus `json:"userStatus"`
-	UnreadChatCount int        `json:"unreadChatCount"`
+type ChatDto struct {
+	SenderID        string     `json:"senderId"`
+	UserName        string     `json:"userName"`
+	UserProfile     []byte     `json:"userProfile"`
+	UserStatus      UserStatus `json:"userStatus"`
+	UnreadPeerChat  int        `json:"unreadPeerChat"`
+	GroupID         string     `json:"groupId"`
+	GroupName       string     `json:"groupName"`
+	GroupProfile    []byte     `json:"groupProfile"`
+	UnreadGroupChat int        `json:"unreadGroupChat"`
 }
 
 type Signup struct {
@@ -112,4 +122,19 @@ type UserMessage struct {
 	LastMessage string     `json:"lastMessage"`
 	Read        bool       `json:"read"`
 	CreatedAt   time.Time  `json:"createdAt"`
+}
+
+type CreateGroup struct {
+	Creator      *User  `json:"creator"`
+	Name         string `json:"name" validate:"required"`
+	Member       string `json:"member" validate:"required"`
+	Description  string `json:"description,omitempty"`
+	GroupProfile string `json:"groupProfile,omitempty"`
+}
+
+type EditGroup struct {
+	EditName        bool   `json:"editName"`
+	Name            string `json:"name,omitempty"`
+	EditDescription bool   `json:"editDescription"`
+	Description     string `json:"description,omitempty"`
 }

@@ -8,37 +8,12 @@ import (
 templ Users(users []types.User, q *types.UserQuerySearch) {
 	@Page() {
 		if isAuthenticated(ctx) {
-			<div class="bg-gray-100 h-screen flex">
+			<div
+				id="main__home"
+				class="bg-gray-100 h-screen flex"
+			>
 				@components.MenuLeftSidebar()
-				<!-- Existing Chat History Sidebar -->
-				<div class="w-1/4 bg-white border-r border-gray-300 flex flex-col">
-					@components.ProfileSection(myInfo)
-					<div class="p-3">
-						<div class="relative">
-							<input
-								name="search"
-								type="search"
-								class="w-full py-2 px-4 bg-gray-100 rounded-full text-sm focus:outline-none"
-								placeholder="Search user by name..."
-								hx-get="/users"
-								hx-trigger="input changed delay:500ms, keyup[key=='Enter'], search"
-								hx-headers='{"X-Page-Query": "true"}'
-								hx-target="#user__list"
-								hx-push-url="true"
-								hx-swap="innerHTML"
-								value={ q.Search }
-							/>
-							<i class="fas fa-search absolute right-3 top-2 text-gray-500"></i>
-						</div>
-					</div>
-					<div
-						id="user__list"
-						class="overflow-y-auto h-[calc(100vh-120px)]"
-					>
-						@components.UserList(users, q, false)
-					</div>
-				</div>
-				<!-- Main Content -->
+				@components.UsersSidebar(myInfo, users, q)
 				<div
 					id="main__content"
 					class="flex-1 flex flex-col"

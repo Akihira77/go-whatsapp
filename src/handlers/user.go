@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"github.com/Akihira77/go_whatsapp/src/utils"
 	"github.com/Akihira77/go_whatsapp/src/views"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type UserHandler struct {
@@ -70,7 +72,11 @@ func (uh *UserHandler) Signup(c *gin.Context) {
 		return
 	}
 
-	file, _, err := c.Request.FormFile("image")
+	file, _, err := c.Request.FormFile("user-profile")
+	slog.Info("req body",
+		"data", data,
+		"image", file,
+	)
 	if err != nil && file != nil {
 		slog.Error("Failed extract image payload")
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"signup__form": err.Error()})
@@ -90,8 +96,8 @@ func (uh *UserHandler) Signup(c *gin.Context) {
 	c.SetCookie("userId", user.ID, 60*60*24, "/", "localhost", true, false)
 	c.Header("HX-Redirect", "/")
 
-	uMsgs, err := uh.chatService.SearchChat(c, user.ID, "")
-	views.Home(uMsgs, []types.Message{}).Render(c, c.Writer)
+	uMsgs, err := uh.chatService.SearchChat(c, user.ID, "%%", "%%")
+	views.Home(uMsgs, nil).Render(c, c.Writer)
 }
 
 func (uh *UserHandler) Signin(c *gin.Context) {
@@ -130,8 +136,8 @@ func (uh *UserHandler) Signin(c *gin.Context) {
 	c.SetCookie("userId", user.ID, 60*60*24, "/", "localhost", true, false)
 	c.Header("HX-Redirect", "/")
 
-	uMsgs, _ := uh.chatService.SearchChat(c, user.ID, "")
-	views.Home(uMsgs, []types.Message{}).Render(c, c.Writer)
+	uMsgs, _ := uh.chatService.SearchChat(c, user.ID, "%%", "%%")
+	views.Home(uMsgs, nil).Render(c, c.Writer)
 }
 
 func (uh *UserHandler) GetMyImageProfile(c *gin.Context) {
@@ -157,6 +163,19 @@ func (uh *UserHandler) GetUserImageProfile(c *gin.Context) {
 
 	c.Header("Content-Type", "image/png")
 	c.Writer.Write(user.ImageUrl)
+}
+
+func (uh *UserHandler) GetGroupImageProfile(c *gin.Context) {
+	groupId := c.Param("groupId")
+	group, err := uh.userService.FindGroupByID(c, groupId)
+	if err != nil {
+		slog.Error("Failed retrieve group's data")
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Failed retrieving your group information"})
+		return
+	}
+
+	c.Header("Content-Type", "image/png")
+	c.Writer.Write(group.GroupProfile)
 }
 
 func (uh *UserHandler) GetMyInfo(c *gin.Context) {
@@ -353,4 +372,62 @@ func (uh *UserHandler) RemoveContact(c *gin.Context) {
 		"message": "Removing contact success",
 		"users":   users,
 	})
+}
+
+func (uh *UserHandler) EditGroup(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, 500*time.Millisecond)
+	defer cancel()
+
+	groupId := c.Param("groupId")
+	g, err := uh.userService.FindGroupByID(ctx, groupId)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"message": "Group not found"})
+
+		}
+
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Failed retrieving group info"})
+		return
+	}
+
+	var data types.EditGroup
+	err = c.ShouldBind(&data)
+	if err != nil {
+		slog.Error("Failed extract request payload")
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Request payload is invalid"})
+		return
+	}
+
+	_, err = uh.userService.EditGroup(ctx, g, data)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Editing group failed"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Editing group success"})
+}
+
+func (uh *UserHandler) GetGroupMembers(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, 500*time.Millisecond)
+	defer cancel()
+
+	groupId := c.Param("groupId")
+	_, err := uh.userService.FindGroupByID(ctx, groupId)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"message": "Group not found"})
+
+		}
+
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Failed retrieving group info"})
+		return
+	}
+
+	members, err := uh.userService.GetGroupMembers(ctx, groupId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Failed retrieving members of group"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"members": members})
 }

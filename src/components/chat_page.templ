@@ -25,9 +25,45 @@ templ ChatPage(receiver *types.User, msgs []types.Message) {
 				<p class="text-xs text-slate-600">Offline</p>
 			}
 		</div>
-		<div class="flex space-x-4">
-			<i class="fas fa-search text-gray-600"></i>
-			<i class="fas fa-ellipsis-v text-gray-600"></i>
+		<div class="flex space-x-4 mr-2">
+			<div>
+				<i class="fas fa-search text-gray-600"></i>
+			</div>
+			<div class="relative">
+				<button id="chat__toggle" class="cursor-pointer focus:outline-none">
+					<i class="fas fa-ellipsis-v text-gray-600"></i>
+				</button>
+				<ul id="chat__menu" class="absolute z-100 right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden">
+					<li>
+						<button
+							class="cursor-pointer w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+							hx-get={ fmt.Sprintf("/users/%s", receiver.ID) }
+							hx-target="#right__sidebar"
+							hx-swap="outerHTML"
+						>
+							Contact Info
+						</button>
+					</li>
+					<li>
+						<button
+							class="cursor-pointer w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+							hx-delete={ fmt.Sprintf("/chat/clear?user=%s", receiver.ID) }
+							hx-confirm="Clear this chat?"
+						>
+							Clear Chat
+						</button>
+					</li>
+					<li>
+						<button
+							class="cursor-pointer w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+							hx-delete={ fmt.Sprintf("/chat/%s", receiver.ID) }
+							hx-confirm="Delete this chat?"
+						>
+							Delete Chat
+						</button>
+					</li>
+				</ul>
+			</div>
 		</div>
 	</div>
 	<!-- Chat Messages -->
@@ -61,34 +97,58 @@ templ ChatPage(receiver *types.User, msgs []types.Message) {
 		id="chat__form"
 		class="bg-gray-200 p-4 flex items-center"
 		method="post"
+		hx-ext="ignore:json-enc"
 		data-receiver-id={ receiver.ID }
 		data-receiver-status={ string(receiver.Status) }
 	>
-		<div data-for="chatInput">
+		<div
+			data-for="chatInput"
+			class="flex w-full items-center"
+		>
 			<i class="fas fa-smile text-gray-600 mr-4"></i>
 			<i class="fas fa-paperclip text-gray-600 mr-4"></i>
-			<input
+			<textarea
 				id="chat__input"
 				name="chatInput"
-				type="text"
 				placeholder="Type a message"
-				class="flex-1 py-2 px-4 bg-white rounded-full text-sm focus:outline-none"
+				class="flex-1 py-2 px-4 bg-white rounded-md text-sm focus:outline-none resize-none overflow-auto min-h-[40px] max-h-[150px]"
 				autofocus
+				rows="1"
+				wrap="soft"
 				maxlength="999"
 				required
-			/>
+			></textarea>
 			<i class="fas fa-microphone text-gray-600 ml-4"></i>
 		</div>
 	</form>
 	<script>
+        document.getElementById('chat__toggle')?.addEventListener('click', () => {
+            document.getElementById('chat__menu').classList.toggle('hidden');
+        });
+
+        window.addEventListener('click', (event) => {
+            const dropdownMenu = document.getElementById('chat__menu');
+            const chatToggle = document.getElementById('chat__toggle');
+            if (chatTogglej && dropdownMenu && !chatToggle.contains(event.target) && !dropdownMenu.contains(event.target)) {
+                dropdownMenu.classList.add('hidden');
+            }
+        });
+
         document.body.addEventListener('htmx:configRequest', function(event) {
             if (event.target.id === 'chat__form') {
                 event.preventDefault();  // This stops htmx from sending the request
             }
         });
 
-        // let hasTyped = false;
-        document.getElementById("chat__input").addEventListener("keyup", async (event) => {
+        function resizeTextarea() {
+            const textarea = document.getElementById('chat__input');
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
+        }
+
+        window.addEventListener('resize', resizeTextarea);
+
+        document.getElementById('chat__input').addEventListener("keyup", async (event) => {
             event.preventDefault();
 
             if (!hasTyped && event.key.length === 1) {
@@ -103,13 +163,16 @@ templ ChatPage(receiver *types.User, msgs []types.Message) {
                     },
                 })
 
-                const sender = document.getElementById(`unread__chat__${receiverId}`);
+                const sender = document.getElementById(`unread__peer__chat__${receiverId}`);
                 if (sender) {
                     sender.className = "invisible";
                     sender.innerHTML = 0;
                 }
             }
+
+            resizeTextarea();
         });
+        resizeTextarea();
 
         document.getElementById("chat__form").addEventListener("submit", async (event) => {
             event.preventDefault();
@@ -139,7 +202,7 @@ templ ChatPage(receiver *types.User, msgs []types.Message) {
         }
 
         // Append message to the chat box
-        function appendMessage(myUserId, senderId, content, createdAt) {
+        function appendPeerMessage(myUserId, senderId, content, createdAt) {
             const date = new Date(createdAt);
             const chatContainer = document.getElementById("chat");
             const formattedDate = date.toLocaleString('en-US', {

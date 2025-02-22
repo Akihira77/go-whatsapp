@@ -188,6 +188,17 @@ func (us *UserService) FindUserByID(ctx context.Context, userId string) (*types.
 	return user, err
 }
 
+func (us *UserService) FindGroupByID(ctx context.Context, groupId string) (*types.Group, error) {
+	group, err := us.userRepository.FindGroupByID(ctx, groupId)
+	if err != nil {
+		slog.Error("Finding group by id",
+			"error", err,
+		)
+	}
+
+	return group, err
+}
+
 func (us *UserService) GetUserInfo(ctx context.Context, userId string) (*types.User, error) {
 	user, err := us.userRepository.GetUserImage(ctx, userId)
 	if err != nil {
@@ -336,4 +347,45 @@ func (us *UserService) UpdateUserStatus(ctx context.Context, user *types.User, s
 	}
 
 	return user, err
+}
+
+func (us *UserService) CreateGroup(ctx context.Context, data types.CreateGroup, profile []byte, member []string) (*types.Group, error) {
+	group, err := us.userRepository.CreateGroup(ctx, data, profile, member)
+	if err != nil {
+		slog.Error("Creating group",
+			"error", err)
+	}
+
+	return group, err
+}
+
+func (us *UserService) EditGroup(ctx context.Context, group *types.Group, data types.EditGroup) (*types.Group, error) {
+	if data.EditName {
+		group.Name = data.Name
+	}
+
+	if data.EditDescription {
+		group.Description = data.Description
+	}
+
+	group, err := us.userRepository.EditGroup(ctx, group)
+	if err != nil {
+		slog.Error("Editing group",
+			"error", err)
+	}
+
+	return group, err
+}
+
+func (us *UserService) GetGroupMembers(ctx context.Context, groupId string) ([]types.UserGroup, error) {
+	members, err := us.userRepository.GetGroupMembers(ctx, groupId)
+	if err != nil {
+		slog.Error("Failed retrieving members of group",
+			"groupId", groupId,
+			"err", err,
+		)
+		return []types.UserGroup{}, err
+	}
+
+	return members, nil
 }

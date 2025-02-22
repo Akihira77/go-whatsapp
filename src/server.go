@@ -64,13 +64,16 @@ func mainRouter(router *gin.Engine, store *store.Store) {
 func pageRouter(router *gin.Engine, authenticatedPage *gin.RouterGroup, userService *services.UserService, chatService *services.ChatService) {
 	pageHandler := handlers.NewPageHandler(userService, chatService)
 	authenticatedPage.GET("/", pageHandler.RenderHome)
-	authenticatedPage.GET("/chat/:userId", pageHandler.RenderChatPage)
+	authenticatedPage.GET("/chat", pageHandler.RenderChatPage)
 	authenticatedPage.GET("/contacts", pageHandler.RenderMyContacts)
 	authenticatedPage.GET("/users", pageHandler.RenderUsers)
 	authenticatedPage.GET("/groups", pageHandler.RenderMakeGroup)
+	authenticatedPage.GET("/groups/:groupId", pageHandler.RenderGroupInfo)
+	authenticatedPage.GET("/groups/naming", pageHandler.RenderNamingGroup)
 	authenticatedPage.GET("/users/profile", pageHandler.RenderMyProfile)
 	authenticatedPage.GET("/users/edit", pageHandler.RenderEditProfile)
 	authenticatedPage.GET("/users/change-password", pageHandler.RenderChangePassword)
+	authenticatedPage.POST("/groups", pageHandler.CreateGroup)
 
 	router.GET("/signup", pageHandler.RenderSignup)
 	router.GET("/signin", pageHandler.RenderSignin)
@@ -84,13 +87,16 @@ func userRouter(api *gin.RouterGroup, authenticatedApi *gin.RouterGroup, userSer
 	authenticatedApi.GET("/users", userHandler.GetUsers)
 	authenticatedApi.GET("/users/my-image", userHandler.GetMyImageProfile)
 	authenticatedApi.GET("/users/images/:userId", userHandler.GetUserImageProfile)
+	authenticatedApi.GET("/groups/images/:groupId", userHandler.GetGroupImageProfile)
 	authenticatedApi.GET("/users/my-info", userHandler.GetMyInfo)
 	authenticatedApi.GET("/users/contacts", userHandler.GetMyContacts)
+	authenticatedApi.GET("/groups/:groupId/members", userHandler.GetGroupMembers)
 	authenticatedApi.PATCH("/users", userHandler.UpdateUserProfile)
 	authenticatedApi.PATCH("/users/change-password", userHandler.UpdatePassword)
 	authenticatedApi.POST("/users/contacts/:userId", userHandler.AddContact)
 	authenticatedApi.POST("/users/logout", userHandler.Logout)
 	authenticatedApi.DELETE("/users/contacts/:userId", userHandler.RemoveContact)
+	authenticatedApi.PATCH("/groups/:groupId", userHandler.EditGroup)
 }
 
 func chatRouter(authenticatedApi *gin.RouterGroup, chatService *services.ChatService) {

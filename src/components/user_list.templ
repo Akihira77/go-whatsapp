@@ -12,7 +12,7 @@ templ UserList(users []types.User, q *types.UserQuerySearch, makeGroup bool) {
 			id={ user.ID }
 			data-name={ utils.GetFullName(&user) }
 			if !makeGroup {
-				hx-get={ fmt.Sprintf("/chat/%s", user.ID) }
+				hx-get={ fmt.Sprintf("/chat?userId=%s", user.ID) }
 				hx-target="#main__content"
 				hx-swap="innerHTML"
 			} else {

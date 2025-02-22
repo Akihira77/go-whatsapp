@@ -2,9 +2,13 @@ package repositories
 
 import (
 	"context"
+	"database/sql"
+	"time"
 
 	"github.com/Akihira77/go_whatsapp/src/store"
 	"github.com/Akihira77/go_whatsapp/src/types"
+	"github.com/oklog/ulid/v2"
+	"gorm.io/gorm"
 )
 
 type UserRepository struct {
@@ -179,4 +183,97 @@ func (ur *UserRepository) FindGroups(ctx context.Context, userId string) ([]type
 		Find(&groups)
 
 	return groups, res.Error
+}
+
+func (ur *UserRepository) CreateGroup(ctx context.Context, data types.CreateGroup, groupProfile []byte, member []string) (*types.Group, error) {
+	tx := ur.store.DB.Begin(&sql.TxOptions{}).Debug()
+
+	group := types.Group{
+		ID:           ulid.Make().String(),
+		Name:         data.Name,
+		UserCount:    len(member),
+		CreatorID:    data.Creator.ID,
+		GroupProfile: groupProfile,
+		CreatedAt:    time.Now(),
+	}
+
+	res := tx.
+		Model(&types.Group{}).
+		Create(&group)
+	if res.Error != nil {
+		tx.Rollback()
+		return nil, res.Error
+	}
+
+	userGroups := make([]types.UserGroup, 0)
+	for _, userId := range member {
+		userGroups = append(userGroups, types.UserGroup{
+			GroupID: group.ID,
+			UserID:  userId,
+		})
+	}
+
+	res = tx.
+		Model(&types.UserGroup{}).
+		Create(&userGroups)
+	if res.Error != nil {
+		tx.Rollback()
+		return nil, res.Error
+	}
+
+	res = tx.Commit()
+	group.Member = userGroups
+
+	return &group, res.Error
+}
+
+func (ur *UserRepository) EditGroup(ctx context.Context, group *types.Group) (*types.Group, error) {
+	res := ur.
+		store.
+		DB.
+		Debug().
+		WithContext(ctx).
+		Save(group)
+
+	return group, res.Error
+}
+
+func (ur *UserRepository) FindGroupByID(ctx context.Context, id string) (*types.Group, error) {
+	var u types.Group
+
+	res := ur.
+		store.
+		DB.
+		Debug().
+		Model(&types.Group{}).
+		WithContext(ctx).
+		Preload("Creator").
+		Preload("Member", func(tx *gorm.DB) *gorm.DB {
+			return tx.Limit(10)
+		}).
+		Preload("Member.User", func(tx *gorm.DB) *gorm.DB {
+			return tx.Select("id", "first_name", "last_name", "email")
+		}).
+		Where("id = ?", id).
+		First(&u)
+
+	return &u, res.Error
+}
+
+func (ur *UserRepository) GetGroupMembers(ctx context.Context, groupId string) ([]types.UserGroup, error) {
+	var members []types.UserGroup
+
+	res := ur.
+		store.
+		DB.
+		Debug().
+		Model(&types.UserGroup{}).
+		WithContext(ctx).
+		Preload("User", func(tx *gorm.DB) *gorm.DB {
+			return tx.Select("id", "first_name", "last_name", "email")
+		}).
+		Where("group_id = ?", groupId).
+		Find(&members)
+
+	return members, res.Error
 }

@@ -33,9 +33,18 @@ func (ch *ChatHandler) SearchLastMessage(c *gin.Context) {
 		return
 	}
 
-	username := c.Param("username")
+	userName := c.Param("username")
+	groupName := c.Param("groupname")
 
-	msgs, err := ch.chatService.SearchChat(ctx, user.ID, username)
+	if userName != "" {
+		userName = "%" + userName + "%"
+	}
+
+	if groupName != "" {
+		groupName = "%" + groupName + "%"
+	}
+
+	msgs, err := ch.chatService.SearchChat(ctx, user.ID, userName, groupName)
 	if err != nil {
 		slog.Error("Retrieving last messages",
 			"error", err,
@@ -61,8 +70,18 @@ func (ch *ChatHandler) GetChatList(c *gin.Context) {
 		return
 	}
 
-	username := c.Query("username")
-	users, err := ch.chatService.SearchChat(ctx, user.ID, username)
+	userName := c.Query("username")
+	groupName := c.Query("groupname")
+
+	if userName != "" {
+		userName = "%" + userName + "%"
+	}
+
+	if groupName != "" {
+		groupName = "%" + groupName + "%"
+	}
+
+	users, err := ch.chatService.SearchChat(ctx, user.ID, userName, groupName)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Failed retrieving last messages"})
 		return
