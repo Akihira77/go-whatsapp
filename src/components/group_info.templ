@@ -43,9 +43,15 @@ templ GroupInfo(g *types.Group) {
 			<div class="flex items-center justify-center gap-2 mb-1">
 				<div id="groupNameContainer" class="text-center">
 					<h2 id="groupNameText" class="text-2xl font-bold">{ g.Name }</h2>
-					<input type="text" id="groupNameInput" class="hidden text-2xl font-bold text-center w-full border-b border-whatsapp outline-none" value="Group Name"/>
+					<input
+						type="text"
+						id="groupNameInput"
+						data-group-id={ g.ID }
+						class="hidden text-2xl font-bold text-center w-full border-b border-emerald-500 outline-none"
+						value={ g.Name }
+					/>
 				</div>
-				<button id="editGroupName" class="cursor-pointer text-gray-500 hover:text-whatsapp">
+				<button id="editGroupName" class="cursor-pointer text-gray-500 hover:text-emerald-500">
 					<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
 					</svg>
@@ -61,15 +67,32 @@ templ GroupInfo(g *types.Group) {
 			</p>
 		</div>
 		<!-- Group Description Section -->
-		//TODO: Add group description
 		<div class="p-4 border-b">
 			<h3 class="text-lg font-semibold mb-2">Group Description</h3>
 			<div class="flex items-start gap-2">
 				<div id="groupDescContainer" class="flex-1">
-					<p id="groupDescText" class="text-gray-600 mb-2">Click to add group description</p>
-					<textarea id="groupDescInput" class="hidden w-full min-h-[100px] p-2 text-gray-600 border rounded-md resize-none" placeholder="Add group description"></textarea>
+					if g.Description == "" {
+						<p
+							id="groupDescText"
+							class="text-emerald-600 mb-2 underline"
+							onclick="handleEditDesciption()"
+						>Click to add group description</p>
+					} else {
+						<p id="groupDescText" class="text-gray-600 mb-2">{ g.Description }</p>
+					}
+					<textarea
+						id="groupDescInput"
+						data-group-id={ g.ID }
+						class="hidden w-full min-h-[100px] p-2 text-gray-600 border rounded-md resize-none"
+						placeholder="Add group description"
+						value={ g.Description }
+					></textarea>
 				</div>
-				<button id="editGroupDesc" class="cursor-pointer text-gray-500 hover:text-whatsapp pt-1">
+				<button
+					id="editGroupDesc"
+					class="cursor-pointer text-gray-500 hover:text-emerald-500 pt-1"
+					onclick="handleEditDesciption()"
+				>
 					<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
 					</svg>
@@ -92,10 +115,15 @@ templ GroupInfo(g *types.Group) {
 				for i, member := range g.Member {
 					<li
 						id={ fmt.Sprintf("member__%s", g.Creator.ID) }
-						class="flex items-center p-2 rounded-md hover:bg-gray-100 transition duration-300"
+						class="flex justify-between p-2 rounded-md hover:bg-gray-100 transition duration-300"
 					>
-						<img src={ fmt.Sprintf("/api/users/images/%s", g.Creator.ID) } alt="Profile" class="w-10 h-10 rounded-full mr-3"/>
-						<span>{ utils.GetFullName(g.Creator) }</span>
+						<div class="flex items-center">
+							<img src={ fmt.Sprintf("/api/users/images/%s", g.Creator.ID) } alt="Profile" class="w-10 h-10 rounded-full mr-3"/>
+							<span>{ utils.GetFullName(g.Creator) }</span>
+						</div>
+						<div class="flex items-center">
+							<span class="text-emerald-700 text-xs">Admin</span>
+						</div>
 					</li>
 					if i < 10 && member.User.ID != g.Creator.ID {
 						<li
@@ -158,7 +186,6 @@ templ GroupInfo(g *types.Group) {
         editGroupName.addEventListener('click', () => {
             groupNameText.classList.add('hidden');
             groupNameInput.classList.remove('hidden');
-            groupNameInput.value = groupNameText.textContent;
             groupNameInput.focus();
         });
 
@@ -170,26 +197,43 @@ templ GroupInfo(g *types.Group) {
             }
         });
 
-        groupNameInput.addEventListener('keyup', (e) => {
-            if (e.key === 'Enter') {
-                groupNameInput.blur();
-            } else if (e.key === 'Escape') {
+        groupNameInput.addEventListener('keyup', async (e) => {
+            if (e.key === 'Escape') {
                 groupNameInput.value = groupNameText.textContent; // Revert to previous value
                 groupNameInput.blur();
+            } else if (!e.shiftKey && e.keyCode === 13) {
+                const groupId = e.target.getAttribute("data-group-id");
+                console.log("group id", groupId);
+                console.log("group name", e.target.value);
+                const res = await fetch(`http://${window.location.host}/api/groups/${groupId}`, {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        editName: true,
+                        name: e.target.value
+                    })
+                });
+
+                if (!res.ok) {
+                    alert("Editing group failed");
+                }
+
+                groupDescInput.blur();
             }
         });
 
         // Group Description Edit Functionality
         const groupDescText = document.getElementById('groupDescText');
         const groupDescInput = document.getElementById('groupDescInput');
-        const editGroupDesc = document.getElementById('editGroupDesc');
 
-        editGroupDesc.addEventListener('click', () => {
+        function handleEditDescription() {
             groupDescText.classList.add('hidden');
             groupDescInput.classList.remove('hidden');
             groupDescInput.value = groupDescText.textContent;
             groupDescInput.focus();
-        });
+        }
 
         groupDescInput.addEventListener('blur', () => {
             groupDescText.classList.remove('hidden');
@@ -199,9 +243,32 @@ templ GroupInfo(g *types.Group) {
             }
         });
 
-        groupDescInput.addEventListener('keydown', (e) => {
+        groupDescInput.addEventListener('keydown', async (e) => {
             if (e.key === 'Escape') {
                 groupDescInput.value = groupDescText.textContent; // Revert to previous value
+                groupDescInput.blur();
+            } else if (!e.shiftKey && e.keyCode === 13) {
+                console.log("key pressed", e);
+                console.log("hit enter");
+
+                const groupId = e.target.getAttribute("data-group-id");
+                console.log("group id", groupId);
+                console.log("group desc", e.target.value);
+                const res = await fetch(`http://${window.location.host}/api/groups/${groupId}`, {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        editDescription: true,
+                        description: e.target.value
+                    })
+                });
+
+                if (!res.ok) {
+                    alert("Editing group failed");
+                }
+
                 groupDescInput.blur();
             }
         });

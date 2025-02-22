@@ -95,6 +95,7 @@ func userRouter(api *gin.RouterGroup, authenticatedApi *gin.RouterGroup, userSer
 	authenticatedApi.POST("/users/contacts/:userId", userHandler.AddContact)
 	authenticatedApi.POST("/users/logout", userHandler.Logout)
 	authenticatedApi.DELETE("/users/contacts/:userId", userHandler.RemoveContact)
+	authenticatedApi.PATCH("/groups/:groupId", userHandler.EditGroup)
 }
 
 func chatRouter(authenticatedApi *gin.RouterGroup, chatService *services.ChatService) {

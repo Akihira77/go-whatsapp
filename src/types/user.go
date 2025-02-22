@@ -37,6 +37,7 @@ type UserContact struct {
 type Group struct {
 	ID           string      `json:"id" gorm:"not null;primaryKey"`
 	Name         string      `json:"name" gorm:"not null;index"`
+	Description  string      `json:"description"`
 	UserCount    int         `json:"userCount" gorm:"not null"`
 	Member       []UserGroup `json:"member,omitempty" gorm:"foreignKey:GroupID;references:ID"`
 	CreatorID    string      `json:"creatorId" gorm:"not null"`
@@ -127,5 +128,13 @@ type CreateGroup struct {
 	Creator      *User  `json:"creator"`
 	Name         string `json:"name" validate:"required"`
 	Member       string `json:"member" validate:"required"`
+	Description  string `json:"description,omitempty"`
 	GroupProfile string `json:"groupProfile,omitempty"`
+}
+
+type EditGroup struct {
+	EditName        bool   `json:"editName"`
+	Name            string `json:"name,omitempty"`
+	EditDescription bool   `json:"editDescription"`
+	Description     string `json:"description,omitempty"`
 }

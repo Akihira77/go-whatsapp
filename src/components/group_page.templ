@@ -10,11 +10,16 @@ templ GroupPage(myUser *types.User, g *types.Group) {
 	<div id="group__page" class="relative">
 		<div id="main__content" class="relative">
 			<div class="bg-gray-200 p-4 flex items-center">
-				<div class="relative">
-					<img src={ fmt.Sprintf("/api/groups/images/%s", g.ID) } alt="Group Profile" class="w-12 h-12 rounded-full object-cover"/>
-				</div>
-				<div class="flex-1 ml-2">
-					<h2 class="font-semibold">{ (g.Name) }</h2>
+				<div
+					id="group__info"
+					class="cursor-pointer flex flex-1 items-center gap-2"
+				>
+					<div class="relative">
+						<img src={ fmt.Sprintf("/api/groups/images/%s", g.ID) } alt="Group Profile" class="w-12 h-12 rounded-full object-cover"/>
+					</div>
+					<div class="flex-1 ml-2">
+						<h2 class="font-semibold">{ (g.Name) }</h2>
+					</div>
 				</div>
 				<div class="flex space-x-4 mr-4">
 					<div>
@@ -118,7 +123,11 @@ templ GroupPage(myUser *types.User, g *types.Group) {
 		</div>
 	</div>
 	<script>
-        document.getElementById('chat__toggle')?.addEventListener('click', () => {
+        document.getElementById("group__info").addEventListener('click', () => {
+            handleGroupInfo("open");
+        });
+
+        document.getElementById('chat__toggle').addEventListener('click', () => {
             document.getElementById('chat__menu').classList.toggle('hidden');
         });
 

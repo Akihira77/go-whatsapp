@@ -358,3 +358,21 @@ func (us *UserService) CreateGroup(ctx context.Context, data types.CreateGroup, 
 
 	return group, err
 }
+
+func (us *UserService) EditGroup(ctx context.Context, group *types.Group, data types.EditGroup) (*types.Group, error) {
+	if data.EditName {
+		group.Name = data.Name
+	}
+
+	if data.EditDescription {
+		group.Description = data.Description
+	}
+
+	group, err := us.userRepository.EditGroup(ctx, group)
+	if err != nil {
+		slog.Error("Editing group",
+			"error", err)
+	}
+
+	return group, err
+}

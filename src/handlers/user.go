@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"github.com/Akihira77/go_whatsapp/src/utils"
 	"github.com/Akihira77/go_whatsapp/src/views"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type UserHandler struct {
@@ -370,4 +372,37 @@ func (uh *UserHandler) RemoveContact(c *gin.Context) {
 		"message": "Removing contact success",
 		"users":   users,
 	})
+}
+
+func (uh *UserHandler) EditGroup(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, 500*time.Millisecond)
+	defer cancel()
+
+	groupId := c.Param("groupId")
+	g, err := uh.userService.FindGroupByID(ctx, groupId)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"message": "Group not found"})
+
+		}
+
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Failed retrieving group info"})
+		return
+	}
+
+	var data types.EditGroup
+	err = c.ShouldBind(&data)
+	if err != nil {
+		slog.Error("Failed extract request payload")
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Request payload is invalid"})
+		return
+	}
+
+	_, err = uh.userService.EditGroup(ctx, g, data)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Editing group failed"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Editing group success"})
 }

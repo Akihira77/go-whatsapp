@@ -226,6 +226,17 @@ func (ur *UserRepository) CreateGroup(ctx context.Context, data types.CreateGrou
 	return &group, res.Error
 }
 
+func (ur *UserRepository) EditGroup(ctx context.Context, group *types.Group) (*types.Group, error) {
+	res := ur.
+		store.
+		DB.
+		Debug().
+		WithContext(ctx).
+		Save(group)
+
+	return group, res.Error
+}
+
 func (ur *UserRepository) FindGroupByID(ctx context.Context, id string) (*types.Group, error) {
 	var u types.Group
 
