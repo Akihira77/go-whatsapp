@@ -312,6 +312,9 @@
   .m-2 {
     margin: calc(var(--spacing) * 2);
   }
+  .m-6 {
+    margin: calc(var(--spacing) * 6);
+  }
   .mx-auto {
     margin-inline: auto;
   }
@@ -431,6 +434,9 @@
   }
   .h-40 {
     height: calc(var(--spacing) * 40);
+  }
+  .h-90 {
+    height: calc(var(--spacing) * 90);
   }
   .h-\[80vh\] {
     height: 80vh;
@@ -798,6 +804,9 @@
   }
   .p-5 {
     padding: calc(var(--spacing) * 5);
+  }
+  .p-6 {
+    padding: calc(var(--spacing) * 6);
   }
   .p-8 {
     padding: calc(var(--spacing) * 8);

@@ -406,3 +406,28 @@ func (uh *UserHandler) EditGroup(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Editing group success"})
 }
+
+func (uh *UserHandler) GetGroupMembers(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, 500*time.Millisecond)
+	defer cancel()
+
+	groupId := c.Param("groupId")
+	_, err := uh.userService.FindGroupByID(ctx, groupId)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"message": "Group not found"})
+
+		}
+
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Failed retrieving group info"})
+		return
+	}
+
+	members, err := uh.userService.GetGroupMembers(ctx, groupId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Failed retrieving members of group"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"members": members})
+}

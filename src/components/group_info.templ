@@ -136,7 +136,11 @@ templ GroupInfo(g *types.Group) {
 					}
 				}
 			</ul>
-			<button id="viewMoreMembers" class="cursor-pointer mt-4 w-full bg-gray-100 text-gray-700 py-2 rounded-md hover:bg-gray-200 transition duration-300">
+			<button
+				id="viewMoreMembers"
+				data-group-id={ g.ID }
+				class="cursor-pointer mt-4 w-full bg-gray-100 text-gray-700 py-2 rounded-md hover:bg-gray-200 transition duration-300"
+			>
 				View more members
 			</button>
 		</div>
@@ -274,21 +278,7 @@ templ GroupInfo(g *types.Group) {
         });
 
         // Member data (example)
-        const allMembers = [
-            { name: 'Alice Johnson', avatar: 'https://i.pravatar.cc/150?img=1' },
-            { name: 'Bob Smith', avatar: 'https://i.pravatar.cc/150?img=2' },
-            { name: 'Charlie Brown', avatar: 'https://i.pravatar.cc/150?img=3' },
-            { name: 'David Lee', avatar: 'https://i.pravatar.cc/150?img=4' },
-            { name: 'Eve Taylor', avatar: 'https://i.pravatar.cc/150?img=5' },
-            { name: 'Frank Wilson', avatar: 'https://i.pravatar.cc/150?img=6' },
-            { name: 'Grace Davis', avatar: 'https://i.pravatar.cc/150?img=7' },
-            { name: 'Henry Miller', avatar: 'https://i.pravatar.cc/150?img=8' },
-            { name: 'Ivy Chen', avatar: 'https://i.pravatar.cc/150?img=9' },
-            { name: 'Jack Thompson', avatar: 'https://i.pravatar.cc/150?img=10' },
-            { name: 'Karen White', avatar: 'https://i.pravatar.cc/150?img=11' },
-            { name: 'Liam Harris', avatar: 'https://i.pravatar.cc/150?img=12' },
-            // Add more members as needed
-        ];
+        let allMembers = [];
 
         const modalMemberList = document.getElementById('modalMemberList');
         const memberCount = document.getElementById('memberCount');
@@ -302,18 +292,20 @@ templ GroupInfo(g *types.Group) {
         function createMemberItem(member) {
             const li = document.createElement('li');
             li.className = 'flex items-center p-2 rounded-md hover:bg-gray-100 transition duration-300';
+            let imageUrl = `/api/users/images/${member.user.id}`;
             li.innerHTML = `
-                <img src="${member.avatar}" alt="${member.name}" class="w-10 h-10 rounded-full mr-3">
-                <span>${member.name}</span>
+                <img src="${imageUrl}" alt="Profile" class="w-10 h-10 rounded-full mr-3">
+                <span>${member.user.firstName + ' ' + member.user.lastName}</span>
             `;
             return li;
         }
 
         // Function to filter members
         function filterMembers(members, searchTerm) {
-            return members.filter(member => 
-                member.name.toLowerCase().includes(searchTerm.toLowerCase())
-            );
+            return members.filter(member => {
+                let fullName = member.user.firstName + ' ' + member.user.lastName;
+                return fullName.toLowerCase().includes(searchTerm.toLowerCase())
+            });
         }
 
         // Populate member list (first 10 members)
@@ -325,9 +317,21 @@ templ GroupInfo(g *types.Group) {
         }
 
         // View more button click handler
-        viewMoreButton.addEventListener('click', () => {
+        viewMoreButton.addEventListener('click', async () => {
             modal.classList.remove('hidden');
             modal.classList.add('flex');
+
+            const groupId = viewMoreButton.getAttribute('data-group-id');
+            const res = await fetch(`http://${window.location.host}/api/groups/${groupId}/members`);
+
+            if (!res.ok) {
+                alert("Failed retrieving members of this group");
+                return;
+            }
+
+            const resJson = await res.json();
+
+            allMembers = resJson.members;
             populateMemberList(allMembers, modalMemberList);
         });
 

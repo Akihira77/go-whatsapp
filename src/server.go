@@ -90,6 +90,7 @@ func userRouter(api *gin.RouterGroup, authenticatedApi *gin.RouterGroup, userSer
 	authenticatedApi.GET("/groups/images/:groupId", userHandler.GetGroupImageProfile)
 	authenticatedApi.GET("/users/my-info", userHandler.GetMyInfo)
 	authenticatedApi.GET("/users/contacts", userHandler.GetMyContacts)
+	authenticatedApi.GET("/groups/:groupId/members", userHandler.GetGroupMembers)
 	authenticatedApi.PATCH("/users", userHandler.UpdateUserProfile)
 	authenticatedApi.PATCH("/users/change-password", userHandler.UpdatePassword)
 	authenticatedApi.POST("/users/contacts/:userId", userHandler.AddContact)

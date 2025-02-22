@@ -8,6 +8,7 @@ import (
 	"github.com/Akihira77/go_whatsapp/src/store"
 	"github.com/Akihira77/go_whatsapp/src/types"
 	"github.com/oklog/ulid/v2"
+	"gorm.io/gorm"
 )
 
 type UserRepository struct {
@@ -247,9 +248,32 @@ func (ur *UserRepository) FindGroupByID(ctx context.Context, id string) (*types.
 		Model(&types.Group{}).
 		WithContext(ctx).
 		Preload("Creator").
-		Preload("Member.User").
+		Preload("Member", func(tx *gorm.DB) *gorm.DB {
+			return tx.Limit(10)
+		}).
+		Preload("Member.User", func(tx *gorm.DB) *gorm.DB {
+			return tx.Select("id", "first_name", "last_name", "email")
+		}).
 		Where("id = ?", id).
 		First(&u)
 
 	return &u, res.Error
+}
+
+func (ur *UserRepository) GetGroupMembers(ctx context.Context, groupId string) ([]types.UserGroup, error) {
+	var members []types.UserGroup
+
+	res := ur.
+		store.
+		DB.
+		Debug().
+		Model(&types.UserGroup{}).
+		WithContext(ctx).
+		Preload("User", func(tx *gorm.DB) *gorm.DB {
+			return tx.Select("id", "first_name", "last_name", "email")
+		}).
+		Where("group_id = ?", groupId).
+		Find(&members)
+
+	return members, res.Error
 }
