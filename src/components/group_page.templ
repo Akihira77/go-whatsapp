@@ -121,8 +121,7 @@ templ GroupPage(myUser *types.User, g *types.Group) {
 		>
 			@GroupInfo(g)
 		</div>
-	</div>
-	<script>
+		<script>
         document.getElementById("group__info").addEventListener('click', () => {
             handleGroupInfo("open");
         });
@@ -239,4 +238,5 @@ templ GroupPage(myUser *types.User, g *types.Group) {
 
         scrollToBottom();
     </script>
+	</div>
 }

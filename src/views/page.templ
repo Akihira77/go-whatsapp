@@ -26,10 +26,19 @@ templ Page() {
                 let hasTyped = false;
                 let userList = new Map();
                 let uploadedGroupProfile = null;
-                // let sStorage = window.sessionStorage.getItem("user__list");
-                // if (sStorage) {
-                //     userList = new Map(JSON.parse(sStorage));
-                // }
+                let allMembers = [];
+                let groupNameText = null;
+                let groupNameInput = null;
+                let groupDescText = null;
+                let groupDescInput = null;
+                let editGroupName = null;
+                let modalMemberList = null;
+                let memberCount = null;
+                let viewMoreButton = null;
+                let modal = null;
+                let closeModalButton = null;
+                let memberSearch = null;
+                let modalMemberSearch = null;
 
                 webSocket.connect(`ws://${window.location.host}/api/ws`);
 

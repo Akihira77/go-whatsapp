@@ -113,25 +113,20 @@ templ GroupInfo(g *types.Group) {
 			</div>
 			<ul id="memberList" class="space-y-2">
 				for i, member := range g.Member {
-					<li
-						id={ fmt.Sprintf("member__%s", g.Creator.ID) }
-						class="flex justify-between p-2 rounded-md hover:bg-gray-100 transition duration-300"
-					>
-						<div class="flex items-center">
-							<img src={ fmt.Sprintf("/api/users/images/%s", g.Creator.ID) } alt="Profile" class="w-10 h-10 rounded-full mr-3"/>
-							<span>{ utils.GetFullName(g.Creator) }</span>
-						</div>
-						<div class="flex items-center">
-							<span class="text-emerald-700 text-xs">Admin</span>
-						</div>
-					</li>
-					if i < 10 && member.User.ID != g.Creator.ID {
+					if i < 10 {
 						<li
-							id={ fmt.Sprintf("member__%s", member.User.ID) }
-							class="flex items-center p-2 rounded-md hover:bg-gray-100 transition duration-300"
+							id={ fmt.Sprintf("member__%s", member.UserID) }
+							class="flex justify-between p-2 rounded-md hover:bg-gray-100 transition duration-300"
 						>
-							<img src={ fmt.Sprintf("/api/users/images/%s", member.User.ID) } alt="Profile" class="w-10 h-10 rounded-full mr-3"/>
-							<span>{ utils.GetFullName(&member.User) }</span>
+							<div class="flex items-center">
+								<img src={ fmt.Sprintf("/api/users/images/%s", member.UserID) } alt="Profile" class="w-10 h-10 rounded-full mr-3"/>
+								<span>{ utils.GetFullName(&member.User) }</span>
+							</div>
+							if member.UserID == g.Creator.ID {
+								<div class="flex items-center">
+									<span class="text-emerald-700 text-xs">Admin</span>
+								</div>
+							}
 						</li>
 					}
 				}
@@ -183,9 +178,9 @@ templ GroupInfo(g *types.Group) {
         });
 
         // Group Name Edit Functionality
-        const groupNameText = document.getElementById('groupNameText');
-        const groupNameInput = document.getElementById('groupNameInput');
-        const editGroupName = document.getElementById('editGroupName');
+        groupNameText = document.getElementById('groupNameText');
+        groupNameInput = document.getElementById('groupNameInput');
+        editGroupName = document.getElementById('editGroupName');
 
         editGroupName.addEventListener('click', () => {
             groupNameText.classList.add('hidden');
@@ -229,8 +224,8 @@ templ GroupInfo(g *types.Group) {
         });
 
         // Group Description Edit Functionality
-        const groupDescText = document.getElementById('groupDescText');
-        const groupDescInput = document.getElementById('groupDescInput');
+        groupDescText = document.getElementById('groupDescText');
+        groupDescInput = document.getElementById('groupDescInput');
 
         function handleEditDescription() {
             groupDescText.classList.add('hidden');
@@ -277,25 +272,22 @@ templ GroupInfo(g *types.Group) {
             }
         });
 
-        // Member data (example)
-        let allMembers = [];
-
-        const modalMemberList = document.getElementById('modalMemberList');
-        const memberCount = document.getElementById('memberCount');
-        const viewMoreButton = document.getElementById('viewMoreMembers');
-        const modal = document.getElementById('allMembersModal');
-        const closeModalButton = document.getElementById('closeModal');
-        const memberSearch = document.getElementById('memberSearch');
-        const modalMemberSearch = document.getElementById('modalMemberSearch');
+        modalMemberList = document.getElementById('modalMemberList');
+        memberCount = document.getElementById('memberCount');
+        viewMoreButton = document.getElementById('viewMoreMembers');
+        modal = document.getElementById('allMembersModal');
+        closeModalButton = document.getElementById('closeModal');
+        memberSearch = document.getElementById('memberSearch');
+        modalMemberSearch = document.getElementById('modalMemberSearch');
 
         // Function to create member list item
         function createMemberItem(member) {
             const li = document.createElement('li');
             li.className = 'flex items-center p-2 rounded-md hover:bg-gray-100 transition duration-300';
-            let imageUrl = `/api/users/images/${member.user.id}`;
+            let imageUrl = `/api/users/images/${member.id}`;
             li.innerHTML = `
                 <img src="${imageUrl}" alt="Profile" class="w-10 h-10 rounded-full mr-3">
-                <span>${member.user.firstName + ' ' + member.user.lastName}</span>
+                <span>${member.firstName + ' ' + member.lastName}</span>
             `;
             return li;
         }
@@ -303,7 +295,7 @@ templ GroupInfo(g *types.Group) {
         // Function to filter members
         function filterMembers(members, searchTerm) {
             return members.filter(member => {
-                let fullName = member.user.firstName + ' ' + member.user.lastName;
+                let fullName = member.firstName + ' ' + member.lastName;
                 return fullName.toLowerCase().includes(searchTerm.toLowerCase())
             });
         }
@@ -336,6 +328,12 @@ templ GroupInfo(g *types.Group) {
         });
 
         // Close modal button click handler
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        });
         closeModalButton.addEventListener('click', () => {
             modal.classList.add('hidden');
             modal.classList.remove('flex');

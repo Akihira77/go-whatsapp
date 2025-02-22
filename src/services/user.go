@@ -377,14 +377,14 @@ func (us *UserService) EditGroup(ctx context.Context, group *types.Group, data t
 	return group, err
 }
 
-func (us *UserService) GetGroupMembers(ctx context.Context, groupId string) ([]types.UserGroup, error) {
+func (us *UserService) GetGroupMembers(ctx context.Context, groupId string) ([]types.User, error) {
 	members, err := us.userRepository.GetGroupMembers(ctx, groupId)
 	if err != nil {
 		slog.Error("Failed retrieving members of group",
 			"groupId", groupId,
 			"err", err,
 		)
-		return []types.UserGroup{}, err
+		return []types.User{}, err
 	}
 
 	return members, nil

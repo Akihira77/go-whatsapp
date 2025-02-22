@@ -82,8 +82,12 @@ templ ChatList(chatList []types.ChatDto) {
                 if (userId !== "" && userId !== lastActiveChatId) {
                     htmx.ajax("GET", `/chat?userId=${userId}`, {target:"#main__content", swap:"innerHTML"}).then(() => {
                         const unreadPeerChat = document.getElementById(`unread__peer__chat__${userId}`);
-                        unreadPeerChat.innerHTML = 0;
-                        unreadPeerChat.className = "invisible";
+                        if (unreadPeerChat) {
+                            unreadPeerChat.innerHTML = 0;
+                            unreadPeerChat.className = "invisible";
+                        } else {
+                            console.log("unread peerchat not found");
+                        }
                     });
                     lastActiveChatId = userId;
                 } else if (groupId !== "" && groupId !== lastActiveChatId) {

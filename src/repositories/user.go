@@ -260,19 +260,18 @@ func (ur *UserRepository) FindGroupByID(ctx context.Context, id string) (*types.
 	return &u, res.Error
 }
 
-func (ur *UserRepository) GetGroupMembers(ctx context.Context, groupId string) ([]types.UserGroup, error) {
-	var members []types.UserGroup
+func (ur *UserRepository) GetGroupMembers(ctx context.Context, groupId string) ([]types.User, error) {
+	var members []types.User
 
 	res := ur.
 		store.
 		DB.
 		Debug().
-		Model(&types.UserGroup{}).
+		Model(&types.User{}).
 		WithContext(ctx).
-		Preload("User", func(tx *gorm.DB) *gorm.DB {
-			return tx.Select("id", "first_name", "last_name", "email")
-		}).
-		Where("group_id = ?", groupId).
+		Select("id", "first_name", "last_name", "email").
+		Joins("JOIN user_groups ON users.id = user_groups.user_id AND user_groups.group_id = ?", groupId).
+		Order("(first_name || ' ' || last_name) ASC").
 		Find(&members)
 
 	return members, res.Error

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"sort"
 	"time"
 
 	"github.com/Akihira77/go_whatsapp/src/components"
@@ -129,6 +130,12 @@ func (ph *PageHandler) RenderChatPage(c *gin.Context) {
 		}
 		g.Messages = msgs
 
+		sort.Slice(g.Member, func(i, j int) bool {
+			memberI := utils.GetFullName(&g.Member[i].User)
+			memberJ := utils.GetFullName(&g.Member[j].User)
+
+			return memberI <= memberJ
+		})
 		components.GroupPage(user, g).Render(c, c.Writer)
 	}
 }
@@ -323,6 +330,7 @@ func (ph *PageHandler) CreateGroup(c *gin.Context) {
 
 	data.Creator = user
 
+	member = append(member, user.ID)
 	group, err := ph.userService.CreateGroup(ctx, data, imageData, member)
 	if err != nil {
 		slog.Error("Failed creating group",
