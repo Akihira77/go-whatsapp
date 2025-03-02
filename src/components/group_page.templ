@@ -87,14 +87,13 @@ templ GroupPage(myUser *types.User, g *types.Group) {
 				}
 			</div>
 			<!-- Message Input -->
-			<form
-				id="chat__form"
+			<div
+				id="chat__container"
 				class="bg-gray-200 p-4 flex items-center"
-				method="post"
-				hx-ext="ignore:json-enc"
 				data-group-id={ g.ID }
 			>
 				<div
+					id="chat__form"
 					data-for="chatInput"
 					class="flex w-full items-center"
 				>
@@ -113,7 +112,7 @@ templ GroupPage(myUser *types.User, g *types.Group) {
 					></textarea>
 					<i class="fas fa-microphone text-gray-600 ml-4"></i>
 				</div>
-			</form>
+			</div>
 		</div>
 		<div
 			id="right__sidebar"
@@ -148,7 +147,7 @@ templ GroupPage(myUser *types.User, g *types.Group) {
         }
 
         document.body.addEventListener('htmx:configRequest', function(event) {
-            if (event.target.id === 'chat__form') {
+            if (event.target.id === 'chat__container') {
                 event.preventDefault();  // This stops htmx from sending the request
             }
         });
@@ -161,13 +160,12 @@ templ GroupPage(myUser *types.User, g *types.Group) {
 
         window.addEventListener('resize', resizeTextarea);
 
-        document.getElementById('chat__input').addEventListener("keyup", async (event) => {
-            event.preventDefault();
+        document.getElementById('chat__input').addEventListener("keydown", (event) => {
+            const chatContainer = document.getElementById("chat__container");
+            const groupId = chatContainer.getAttribute("data-group-id");
 
             if (!hasTyped && event.key.length === 1) {
                 hasTyped = true;
-                const chatForm = document.getElementById("chat__form");
-                const groupId = chatForm.getAttribute("data-group-id");
 
                 webSocket.sendMessage({
                     type: "MARK_MSGS_AS_READ",
@@ -176,37 +174,38 @@ templ GroupPage(myUser *types.User, g *types.Group) {
                     },
                 })
 
-                const group = document.getElementById(`unread__group__chat__${receiverId}`);
+                const group = document.getElementById(`unread__group__chat__${groupId}`);
                 if (group) {
                     group.className = "invisible";
                     group.innerHTML = 0;
                 }
             }
 
+            if (!event.shiftKey && event.key === "Enter") {
+                event.preventDefault();
+
+                console.log("group chat submitted", event);
+
+                let chatInput = document.getElementById("chat__input");
+                const myUserId = getCookieByName("userId");
+                if (!chatInput.value.trim()) return; // Prevent empty messages
+
+                webSocket.sendMessage({
+                    type: "GROUP_CHAT",
+                    body: {
+                        groupId: groupId,
+                        content: chatInput.value
+                    },
+                });
+
+                chatInput.value = '';
+                hasTyped = false;
+            }
+
             resizeTextarea();
         });
+
         resizeTextarea();
-
-        document.getElementById("chat__form").addEventListener("submit", async (event) => {
-            event.preventDefault();
-
-            const chatForm = document.getElementById("chat__form");
-            const groupId = chatForm.getAttribute("data-group-id");
-            let chatInput = document.getElementById("chat__input");
-            const myUserId = getCookieByName("userId");
-            if (!chatInput.value.trim()) return; // Prevent empty messages
-
-            webSocket.sendMessage({
-                type: "GROUP_CHAT",
-                body: {
-                    groupId: groupId,
-                    content: chatInput.value
-                },
-            });
-
-            chatInput.value = '';
-            hasTyped = false;
-        });
 
         function scrollToBottom() {
             const chatContainer = document.getElementById("chat");

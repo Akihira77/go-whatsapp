@@ -70,15 +70,6 @@ templ MakeGroup(users []types.User, q *types.UserQuerySearch) {
 				</div>
 			</div>
 			<script>
-            window.addEventListener("beforeunload", function (event) {
-                event.preventDefault();
-                console.log("userlist still has value");
-
-                if (userList.size > 0) {
-                    event.returnValue = "You have unsaved changes. Do you really want to leave?";
-                }
-            });
-
             function nextNamingGroup() {
                 if (userList.size === 0) {
                     console.log("next Naming Group");

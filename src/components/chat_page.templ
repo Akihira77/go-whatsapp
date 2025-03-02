@@ -93,15 +93,14 @@ templ ChatPage(receiver *types.User, msgs []types.Message) {
 		}
 	</div>
 	<!-- Message Input -->
-	<form
-		id="chat__form"
+	<div
+		id="chat__container"
 		class="bg-gray-200 p-4 flex items-center"
-		method="post"
-		hx-ext="ignore:json-enc"
 		data-receiver-id={ receiver.ID }
 		data-receiver-status={ string(receiver.Status) }
 	>
 		<div
+			id="chat__form"
 			data-for="chatInput"
 			class="flex w-full items-center"
 		>
@@ -120,7 +119,7 @@ templ ChatPage(receiver *types.User, msgs []types.Message) {
 			></textarea>
 			<i class="fas fa-microphone text-gray-600 ml-4"></i>
 		</div>
-	</form>
+	</div>
 	<script>
         document.getElementById('chat__toggle')?.addEventListener('click', () => {
             document.getElementById('chat__menu').classList.toggle('hidden');
@@ -135,7 +134,7 @@ templ ChatPage(receiver *types.User, msgs []types.Message) {
         });
 
         document.body.addEventListener('htmx:configRequest', function(event) {
-            if (event.target.id === 'chat__form') {
+            if (event.target.id === 'chat__container') {
                 event.preventDefault();  // This stops htmx from sending the request
             }
         });
@@ -148,13 +147,12 @@ templ ChatPage(receiver *types.User, msgs []types.Message) {
 
         window.addEventListener('resize', resizeTextarea);
 
-        document.getElementById('chat__input').addEventListener("keyup", async (event) => {
-            event.preventDefault();
+        document.getElementById('chat__input').addEventListener("keydown", (event) => {
+            const chatForm = document.getElementById("chat__container");
+            const receiverId = chatForm.getAttribute("data-receiver-id");
 
             if (!hasTyped && event.key.length === 1) {
                 hasTyped = true;
-                const chatForm = document.getElementById("chat__form");
-                const receiverId = chatForm.getAttribute("data-receiver-id");
 
                 webSocket.sendMessage({
                     type: "MARK_MSGS_AS_READ",
@@ -170,31 +168,30 @@ templ ChatPage(receiver *types.User, msgs []types.Message) {
                 }
             }
 
+            if (!event.shiftKey && event.key === "Enter") {
+                event.preventDefault();
+                console.log("peer chat submitted");
+
+                const receiverStatus = chatForm.getAttribute("data-receiver-status");
+                let chatInput = document.getElementById("chat__input");
+                const myUserId = getCookieByName("userId");
+                if (!chatInput.value.trim()) return; // Prevent empty messages
+
+                webSocket.sendMessage({
+                    type: "PEER_CHAT",
+                    body: {
+                        receiverId: receiverId,
+                        content: chatInput.value
+                    },
+                });
+
+                chatInput.value = '';
+                hasTyped = false;
+            }
+
             resizeTextarea();
         });
         resizeTextarea();
-
-        document.getElementById("chat__form").addEventListener("submit", async (event) => {
-            event.preventDefault();
-
-            const chatForm = document.getElementById("chat__form");
-            const receiverId = chatForm.getAttribute("data-receiver-id");
-            const receiverStatus = chatForm.getAttribute("data-receiver-status");
-            let chatInput = document.getElementById("chat__input");
-            const myUserId = getCookieByName("userId");
-            if (!chatInput.value.trim()) return; // Prevent empty messages
-
-            webSocket.sendMessage({
-                type: "PEER_CHAT",
-                body: {
-                    receiverId: receiverId,
-                    content: chatInput.value
-                },
-            });
-
-            chatInput.value = '';
-            hasTyped = false;
-        });
 
         function scrollToBottom() {
             const chatContainer = document.getElementById("chat");

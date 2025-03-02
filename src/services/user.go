@@ -199,6 +199,41 @@ func (us *UserService) FindGroupByID(ctx context.Context, groupId string) (*type
 	return group, err
 }
 
+func (us *UserService) IsGroupExistByID(ctx context.Context, groupId string) (bool, error) {
+	isExist, err := us.userRepository.IsGroupExistByID(ctx, groupId)
+	if err != nil {
+		slog.Error("Validating does group exists",
+			"error", err,
+		)
+	}
+
+	return isExist, err
+}
+
+func (us *UserService) ExitGroup(ctx context.Context, userId string, group *types.Group) (bool, error) {
+	if userId == group.CreatorID {
+		err := us.userRepository.DeleteGroup(ctx, group.ID)
+		if err != nil {
+			slog.Error("Failed deleting group",
+				"creator", userId,
+				"err", err,
+			)
+		}
+
+		return err == nil, err
+	} else {
+		err := us.userRepository.ExitGroup(ctx, userId, group.ID)
+		if err != nil {
+			slog.Error("Failed exiting group",
+				"user", userId,
+				"err", err,
+			)
+		}
+
+		return err == nil, err
+	}
+}
+
 func (us *UserService) GetUserInfo(ctx context.Context, userId string) (*types.User, error) {
 	user, err := us.userRepository.GetUserImage(ctx, userId)
 	if err != nil {
@@ -377,14 +412,14 @@ func (us *UserService) EditGroup(ctx context.Context, group *types.Group, data t
 	return group, err
 }
 
-func (us *UserService) GetGroupMembers(ctx context.Context, groupId string) ([]types.User, error) {
+func (us *UserService) GetGroupMembers(ctx context.Context, groupId string) ([]types.UserInfo, error) {
 	members, err := us.userRepository.GetGroupMembers(ctx, groupId)
 	if err != nil {
 		slog.Error("Failed retrieving members of group",
 			"groupId", groupId,
 			"err", err,
 		)
-		return []types.User{}, err
+		return []types.UserInfo{}, err
 	}
 
 	return members, nil

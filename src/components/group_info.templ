@@ -144,8 +144,9 @@ templ GroupInfo(g *types.Group) {
 			<button
 				id="exitGroup"
 				class="cursor-pointer w-full bg-red-500 text-white py-2 rounded-md hover:bg-red-600 transition duration-300"
-				hx-delete={ fmt.Sprintf("/groups/%s", g.ID) }
-				hx-confirm={ fmt.Sprintf("Exit '%s' group?", g.Name) }
+				data-group-id={ g.ID }
+				data-group-name={ g.Name }
+				onclick="exitGroup(this)"
 			>
 				Exit Group
 			</button>
@@ -176,6 +177,26 @@ templ GroupInfo(g *types.Group) {
         document.getElementById('profileMenu').addEventListener('click', function() {
             document.getElementById('profileDropdown').classList.toggle('hidden');
         });
+
+        function exitGroup(element) {
+            const groupId = element.getAttribute("data-group-id");
+            const groupName = element.getAttribute("data-group-name");
+
+            const choice = confirm(`Exit ${groupName} group?`);
+
+            if (choice) {
+                console.log("group id", groupId);
+                console.log("group name", groupName);
+                console.log("element", element);
+
+                webSocket.sendMessage({
+                    type: "EXIT_GROUP",
+                    body: {
+                        groupId: groupId,
+                    },
+                });
+            }
+        }
 
         // Group Name Edit Functionality
         groupNameText = document.getElementById('groupNameText');

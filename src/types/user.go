@@ -39,19 +39,19 @@ type Group struct {
 	Name         string      `json:"name" gorm:"not null;index"`
 	Description  string      `json:"description"`
 	UserCount    int         `json:"userCount" gorm:"not null"`
-	Member       []UserGroup `json:"member,omitempty" gorm:"foreignKey:GroupID;references:ID"`
-	CreatorID    string      `json:"creatorId" gorm:"not null"`
-	Creator      *User       `json:"creator,omitempty"`
+	Member       []UserGroup `json:"member,omitempty" gorm:"foreignKey:GroupID;references:ID;"`
+	CreatorID    string      `json:"creatorId" gorm:""`
+	Creator      *User       `json:"creator,omitempty" gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 	GroupProfile []byte      `json:"groupProfile,omitempty"`
-	Messages     []Message   `json:"messages"`
+	Messages     []Message   `json:"messages" gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	CreatedAt    time.Time   `json:"createdAt" gorm:"not null"`
 }
 
 type UserGroup struct {
-	UserID  string `json:"userId" gorm:"not null;primaryKey"`
-	User    User   `json:"user,omitempty"`
-	GroupID string `json:"groupId" gorm:"not null;primaryKey"`
-	Group   Group  `json:"group,omitempty"`
+	UserID  string `json:"userId" gorm:"primaryKey"`
+	User    User   `json:"user,omitempty" gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	GroupID string `json:"groupId" gorm:"primaryKey;not null;"`
+	Group   Group  `json:"group,omitempty" gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
 // INFO: Data Transfer Object
@@ -65,6 +65,8 @@ type ChatDto struct {
 	GroupName       string     `json:"groupName"`
 	GroupProfile    []byte     `json:"groupProfile"`
 	UnreadGroupChat int        `json:"unreadGroupChat"`
+	Content         string     `json:"content"`
+	CreatedAt       time.Time  `json:"createdAt"`
 }
 
 type Signup struct {
@@ -90,10 +92,10 @@ type UpdatePassword struct {
 }
 
 type UserInfo struct {
-	ID       string `json:"id"`
-	FullName string `json:"fullName"`
-	Email    string `json:"email"`
-	ImageUrl string `json:"imageUrl"`
+	ID        string `json:"id"`
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+	Email     string `json:"email"`
 }
 
 type JWTClaims struct {
