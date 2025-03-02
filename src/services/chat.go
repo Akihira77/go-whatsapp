@@ -120,7 +120,7 @@ func (cs *ChatService) SoftDeleteMessage(ctx context.Context, data *types.Messag
 	return *data, err
 }
 
-func (cs *ChatService) MarkMessagesAsRead(ctx context.Context, senderId, receiverId, groupId string) ([]types.Message, error) {
+func (cs *ChatService) MarkMessagesAsRead(ctx context.Context, senderId string, receiverId *string, groupId *string) ([]types.Message, error) {
 	err := cs.
 		chatRepository.
 		MarkMessagesAsRead(ctx, senderId, receiverId, groupId)
@@ -132,9 +132,9 @@ func (cs *ChatService) MarkMessagesAsRead(ctx context.Context, senderId, receive
 		return []types.Message{}, err
 	}
 
-	if groupId != "" {
-		return cs.GetMessagesInsideGroup(ctx, groupId)
+	if groupId != nil {
+		return cs.GetMessagesInsideGroup(ctx, *groupId)
 	}
 
-	return cs.GetMessages(ctx, senderId, receiverId)
+	return cs.GetMessages(ctx, senderId, *receiverId)
 }

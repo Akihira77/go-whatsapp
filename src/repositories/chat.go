@@ -25,6 +25,7 @@ func (cr *ChatRepository) GetMessages(ctx context.Context, userIds [2]string) ([
 		DB.
 		Debug().
 		Model(&types.Message{}).
+		Preload("Sender").
 		WithContext(ctx).
 		Where("(sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)", userIds[0], userIds[1], userIds[1], userIds[0]).
 		Find(&msgs)
@@ -40,6 +41,7 @@ func (cr *ChatRepository) GetMessagesInsideGroup(ctx context.Context, groupId st
 		DB.
 		Debug().
 		Model(&types.Message{}).
+		Preload("Sender").
 		WithContext(ctx).
 		Where("group_id", groupId).
 		Find(&msgs)
@@ -171,13 +173,14 @@ func (cr *ChatRepository) HardDeleteMessage(ctx context.Context, msgId string) e
 	return res.Error
 }
 
-func (cr *ChatRepository) MarkMessagesAsRead(ctx context.Context, senderId, receiverId, groupId string) error {
+func (cr *ChatRepository) MarkMessagesAsRead(ctx context.Context, senderId string, receiverId *string, groupId *string) error {
 	res := cr.
 		store.
 		DB.
+		Debug().
 		Model(&types.Message{}).
 		WithContext(ctx).
-		Where("(sender_id = ? AND receiver_id = ? AND group_id = ?) AND is_read = false", senderId, receiverId, groupId).
+		Where("(sender_id = ? AND receiver_id IS ? AND group_id IS ?) AND is_read = false", senderId, receiverId, groupId).
 		Update("is_read", true)
 
 	return res.Error

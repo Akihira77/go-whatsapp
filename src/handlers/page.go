@@ -102,7 +102,7 @@ func (ph *PageHandler) RenderChatPage(c *gin.Context) {
 			return
 		}
 
-		msgs, err := ph.chatService.MarkMessagesAsRead(c, senderId, user.ID, "")
+		msgs, err := ph.chatService.MarkMessagesAsRead(c, senderId, &user.ID, nil)
 		if err != nil {
 			slog.Error("Retrieving reads messages",
 				"error", err,
@@ -121,7 +121,7 @@ func (ph *PageHandler) RenderChatPage(c *gin.Context) {
 			return
 		}
 
-		msgs, err := ph.chatService.MarkMessagesAsRead(c, senderId, user.ID, groupId)
+		msgs, err := ph.chatService.MarkMessagesAsRead(c, senderId, nil, &groupId)
 		if err != nil {
 			slog.Error("Retrieving reads messages",
 				"error", err,

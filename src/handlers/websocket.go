@@ -47,8 +47,8 @@ var (
 
 type WsMessageBody struct {
 	SenderID   string     `json:"senderId"`
-	ReceiverID string     `json:"receiverId,omitempty"`
-	GroupID    string     `json:"groupId,omitempty"`
+	ReceiverID *string    `json:"receiverId,omitempty"`
+	GroupID    *string    `json:"groupId,omitempty"`
 	Content    string     `json:"content"`
 	CreatedAt  *time.Time `json:"createdAt,omitempty"`
 }
@@ -145,7 +145,7 @@ func (h *Hub) Run() {
 					}
 				}
 
-				if client, ok := h.clients[msg.Body.ReceiverID]; ok {
+				if client, ok := h.clients[*msg.Body.ReceiverID]; ok {
 					slog.Info("Client receiving peer to peer msg",
 						"receiver", client.User.Email,
 					)
@@ -178,7 +178,7 @@ func (h *Hub) Run() {
 			case GROUP_CHAT:
 				for userId := range h.clients {
 					client := h.clients[userId]
-					if _, ok := client.Groups[msg.Body.GroupID]; ok {
+					if _, ok := client.Groups[*msg.Body.GroupID]; ok {
 						slog.Info("Client sending to group msg",
 							"client", client.User.Email,
 						)
@@ -193,7 +193,7 @@ func (h *Hub) Run() {
 			case EXIT_GROUP:
 				for userId := range h.clients {
 					client := h.clients[userId]
-					if _, ok := client.Groups[msg.Body.GroupID]; ok {
+					if _, ok := client.Groups[*msg.Body.GroupID]; ok {
 						slog.Info("Client exiting group chat",
 							"client", client.User.Email,
 						)
@@ -250,8 +250,18 @@ func (c *Client) readPump(userService *services.UserService, chatService *servic
 
 		switch data.Type {
 		case MARK_MSGS_AS_READ:
-			slog.Info("Marking message as read")
-			_, err := chatService.MarkMessagesAsRead(context.Background(), data.Body.SenderID, c.UserID, data.Body.GroupID)
+			slog.Info("Marking message as read",
+				"senderId", data.Body.SenderID,
+				"groupId", data.Body.GroupID,
+			)
+
+			var err error
+			if data.Body.GroupID != nil {
+				_, err = chatService.MarkMessagesAsRead(context.Background(), data.Body.SenderID, nil, data.Body.GroupID)
+			} else {
+				_, err = chatService.MarkMessagesAsRead(context.Background(), data.Body.SenderID, &c.UserID, nil)
+			}
+
 			if err != nil {
 				slog.Error("Marking messages as read",
 					"error", err,
@@ -269,7 +279,7 @@ func (c *Client) readPump(userService *services.UserService, chatService *servic
 			m, err := chatService.AddMessage(context.Background(), &types.CreateMessage{
 				Content:    data.Body.Content,
 				SenderID:   data.Body.SenderID,
-				ReceiverID: &data.Body.ReceiverID,
+				ReceiverID: data.Body.ReceiverID,
 				GroupID:    nil,
 			})
 			if err != nil {
@@ -288,7 +298,7 @@ func (c *Client) readPump(userService *services.UserService, chatService *servic
 				Content:    data.Body.Content,
 				SenderID:   data.Body.SenderID,
 				ReceiverID: nil,
-				GroupID:    &data.Body.GroupID,
+				GroupID:    data.Body.GroupID,
 			})
 			if err != nil {
 				slog.Error("Adding message",
@@ -304,7 +314,7 @@ func (c *Client) readPump(userService *services.UserService, chatService *servic
 				"email", c.User.Email,
 			)
 
-			g, ok := c.Groups[data.Body.GroupID]
+			g, ok := c.Groups[*data.Body.GroupID]
 			if !ok {
 				slog.Error("Group is not found",
 					"groupId", data.Body.GroupID,

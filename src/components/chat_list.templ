@@ -81,18 +81,10 @@ templ ChatList(chatList []types.ChatDto) {
 
                 if (userId && userId !== "" && userId !== lastActiveChatId) {
                     lastActiveChatId = userId;
-                    htmx.ajax("GET", `/chat?userId=${userId}`, {target:"#main__content", swap:"innerHTML"}).then(() => {
-                        const unreadPeerChat = document.getElementById(`unread__peer__chat__${userId}`);
-                        unreadPeerChat.innerHTML = 0;
-                        unreadPeerChat.className = "invisible";
-                    });
+                    htmx.ajax("GET", `/chat?userId=${userId}`, {target:"#main__content", swap:"innerHTML"});
                 } else if (groupId && groupId !== "" && groupId !== lastActiveChatId) {
                     lastActiveChatId = groupId;
-                    htmx.ajax("GET", `/chat?groupId=${groupId}`, {target:"#main__content", swap:"innerHTML"}).then(() => {
-                        const unreadGroupChat = document.getElementById(`unread__group__chat__${groupId}`);
-                        unreadGroupChat.innerHTML = 0;
-                        unreadGroupChat.className = "invisible";
-                    });
+                    htmx.ajax("GET", `/chat?groupId=${groupId}`, {target:"#main__content", swap:"innerHTML"});
                 }
             });
         });

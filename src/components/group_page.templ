@@ -3,6 +3,7 @@ package components
 import (
 	"fmt"
 	"github.com/Akihira77/go_whatsapp/src/types"
+	"github.com/Akihira77/go_whatsapp/src/utils"
 )
 
 templ GroupPage(myUser *types.User, g *types.Group) {
@@ -63,25 +64,39 @@ templ GroupPage(myUser *types.User, g *types.Group) {
 			<!-- Chat Messages -->
 			<div
 				id="chat"
-				class="flex-1 h-[80vh] bg-[#e5ddd5] overflow-y-auto p-4"
+				class="chat-bg flex-1 h-[80vh] bg-[#e5ddd5] overflow-y-auto p-4"
 			>
 				<!-- Messages will go here -->
 				for _, msg := range g.Messages {
-					if msg.SenderID == myUser.ID {
+					if msg.SenderID != myUser.ID {
 						<div
 							id="sender__message"
-							class="bg-emerald-800 text-white rounded-lg p-2 mb-2 max-w-[70%] ml-auto relative"
+							class="flex mb-4"
 						>
-							<p class="text-sm">{ msg.Content }</p>
-							<span class="text-xs absolute bottom-1 right-4">{ msg.CreatedAt.Format("2/1/2006 3:04 PM") }</span>
+							<img src={ fmt.Sprintf("/api/users/images/%s", msg.SenderID) } alt="Sender Profile" class="w-10 h-10 rounded-full object-cover mr-2"/>
+							<div class="flex flex-col flex-1">
+								<div class="text-xs text-[#00a884] mb-1">{ utils.GetFullName(msg.Sender) }</div>
+								<div class="w-max bg-[#1f2c34] text-white rounded-lg p-2 rounded-bl-none shadow-md relative">
+									<div class="whitespace-pre-wrap">{ msg.Content }</div>
+									<div class="flex justify-end">
+										<span class="text-[10px] text-white/75 ml-1.5 self-end">{ msg.CreatedAt.Format("2/1/2006 3:04 PM") }</span>
+									</div>
+								</div>
+							</div>
 						</div>
 					} else {
 						<div
 							id="receiver__message"
-							class="bg-slate-800 text-white rounded-lg p-2 mb-2 max-w-[70%] relative"
+							class="flex mb-4"
 						>
-							<p class="text-sm">{ msg.Content }</p>
-							<span class="text-xs absolute bottom-1 right-4">{ msg.CreatedAt.Format("2/1/2006 3:04 PM") }</span>
+							<div class="flex flex-col flex-1">
+								<div class="w-max bg-[#025D4B] text-white rounded-lg px-3 py-2 rounded-br-none shadow-md relative self-end">
+									<div class="whitespace-pre-wrap">{ msg.Content }</div>
+									<div class="flex justify-end">
+										<span class="text-[10px] text-white/75 ml-1.5 self-end">{ msg.CreatedAt.Format("2/1/2006 3:04 PM") }</span>
+									</div>
+								</div>
+							</div>
 						</div>
 					}
 				}
@@ -103,7 +118,7 @@ templ GroupPage(myUser *types.User, g *types.Group) {
 						id="chat__input"
 						name="chatInput"
 						placeholder="Type a message"
-						class="flex-1 py-2 px-4 bg-white rounded-md text-sm focus:outline-none resize-none overflow-auto min-h-[40px] max-h-[150px]"
+						class="flex-1 py-2 px-4 bg-white rounded-md text-sm focus:outline-none resize-none overflow-auto min-h-[40px] max-h-[150px] hide-scrollbar"
 						autofocus
 						rows="1"
 						wrap="soft"
@@ -226,10 +241,19 @@ templ GroupPage(myUser *types.User, g *types.Group) {
             }).replace('am', 'AM').replace('pm', 'PM');
 
             const newMsg = `
-                <div class="${myUserId === senderId? "bg-emerald-800 ml-auto" : "bg-slate-800"} text-white rounded-lg p-2 mb-2 max-w-[70%] relative">
-                    <p class="text-sm">${content}</p>
-                    <span class="text-xs absolute bottom-1 right-4">${formattedDate}</span>
-                </div>
+				<div
+					id="${myUserId === senderId? "me" : "not-me"}"
+					class="flex mb-4"
+				>
+					<div class="flex flex-col flex-1">
+						<div class="w-max ${myUserId === senderId? "bg-[#025D4B] self-end" : "bg-[#1f2c34] self-start"} text-white rounded-lg px-3 py-2 rounded-br-none shadow-md relative"]>
+							<div class="whitespace-pre-wrap">${ content }</div>
+							<div class="flex justify-end">
+								<span class="text-[10px] text-white/75 ml-1.5 self-end">${ formattedDate }</span>
+							</div>
+						</div>
+					</div>
+				</div>
             `;
             document.getElementById('chat').insertAdjacentHTML('beforeend', newMsg);
             scrollToBottom();
