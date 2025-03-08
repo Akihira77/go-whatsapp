@@ -279,12 +279,6 @@
   .left-42 {
     left: calc(var(--spacing) * 42);
   }
-  .z-5 {
-    z-index: 5;
-  }
-  .z-7 {
-    z-index: 7;
-  }
   .z-10 {
     z-index: 10;
   }
@@ -308,12 +302,6 @@
     @media (width >= 96rem) {
       max-width: 96rem;
     }
-  }
-  .m-2 {
-    margin: calc(var(--spacing) * 2);
-  }
-  .m-6 {
-    margin: calc(var(--spacing) * 6);
   }
   .mx-auto {
     margin-inline: auto;
@@ -362,6 +350,12 @@
   }
   .mb-8 {
     margin-bottom: calc(var(--spacing) * 8);
+  }
+  .ml-1 {
+    margin-left: calc(var(--spacing) * 1);
+  }
+  .ml-1\.5 {
+    margin-left: calc(var(--spacing) * 1.5);
   }
   .ml-2 {
     margin-left: calc(var(--spacing) * 2);
@@ -435,9 +429,6 @@
   .h-40 {
     height: calc(var(--spacing) * 40);
   }
-  .h-90 {
-    height: calc(var(--spacing) * 90);
-  }
   .h-\[80vh\] {
     height: 80vh;
   }
@@ -492,6 +483,9 @@
   .w-6 {
     width: calc(var(--spacing) * 6);
   }
+  .w-7 {
+    width: calc(var(--spacing) * 7);
+  }
   .w-8 {
     width: calc(var(--spacing) * 8);
   }
@@ -531,8 +525,14 @@
   .w-full {
     width: 100%;
   }
+  .w-max {
+    width: max-content;
+  }
   .max-w-\[70\%\] {
     max-width: 70%;
+  }
+  .max-w-\[75\%\] {
+    max-width: 75%;
   }
   .max-w-md {
     max-width: var(--container-md);
@@ -575,6 +575,9 @@
   .flex-col {
     flex-direction: column;
   }
+  .flex-row-reverse {
+    flex-direction: row-reverse;
+  }
   .flex-wrap {
     flex-wrap: wrap;
   }
@@ -589,6 +592,9 @@
   }
   .justify-center {
     justify-content: center;
+  }
+  .justify-end {
+    justify-content: flex-end;
   }
   .gap-2 {
     gap: calc(var(--spacing) * 2);
@@ -644,6 +650,12 @@
       margin-inline-end: calc(calc(var(--spacing) * 4) * calc(1 - var(--tw-space-x-reverse)));
     }
   }
+  .self-end {
+    align-self: flex-end;
+  }
+  .self-start {
+    align-self: flex-start;
+  }
   .truncate {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -669,6 +681,12 @@
   }
   .rounded-md {
     border-radius: var(--radius-md);
+  }
+  .rounded-br-none {
+    border-bottom-right-radius: 0;
+  }
+  .rounded-bl-none {
+    border-bottom-left-radius: 0;
   }
   .border {
     border-style: var(--tw-border-style);
@@ -714,6 +732,12 @@
   }
   .bg-\[\#128C7E\] {
     background-color: #128C7E;
+  }
+  .bg-\[\#1f2c34\] {
+    background-color: #1f2c34;
+  }
+  .bg-\[\#025D4B\] {
+    background-color: #025D4B;
   }
   .bg-\[\#e5ddd5\] {
     background-color: #e5ddd5;
@@ -805,9 +829,6 @@
   .p-5 {
     padding: calc(var(--spacing) * 5);
   }
-  .p-6 {
-    padding: calc(var(--spacing) * 6);
-  }
   .p-8 {
     padding: calc(var(--spacing) * 8);
   }
@@ -856,9 +877,6 @@
   .pb-4 {
     padding-bottom: calc(var(--spacing) * 4);
   }
-  .pl-2 {
-    padding-left: calc(var(--spacing) * 2);
-  }
   .text-center {
     text-align: center;
   }
@@ -893,6 +911,12 @@
     font-size: var(--text-xs);
     line-height: var(--tw-leading, var(--text-xs--line-height));
   }
+  .text-\[10px\] {
+    font-size: 10px;
+  }
+  .text-\[11px\] {
+    font-size: 11px;
+  }
   .font-bold {
     --tw-font-weight: var(--font-weight-bold);
     font-weight: var(--font-weight-bold);
@@ -904,6 +928,15 @@
   .font-semibold {
     --tw-font-weight: var(--font-weight-semibold);
     font-weight: var(--font-weight-semibold);
+  }
+  .whitespace-pre-wrap {
+    white-space: pre-wrap;
+  }
+  .text-\[\#00a884\] {
+    color: #00a884;
+  }
+  .text-\[\#025D4B\] {
+    color: #025D4B;
   }
   .text-blue-600 {
     color: var(--color-blue-600);
@@ -940,6 +973,12 @@
   }
   .text-white {
     color: var(--color-white);
+  }
+  .text-white\/60 {
+    color: color-mix(in oklab, var(--color-white) 60%, transparent);
+  }
+  .text-white\/75 {
+    color: color-mix(in oklab, var(--color-white) 75%, transparent);
   }
   .underline {
     text-decoration-line: underline;
@@ -1002,11 +1041,11 @@
     --tw-duration: 300ms;
     transition-duration: 300ms;
   }
-  .\[i\:��uf����\#��1H�\7f ��v��2�K��F�\2 ��\f b\18 ��򑑭��\] {
-    i: ��uf����#��1H���v��2�K��F���b��򑑭��;
-  }
   .\[rows\:\%v\] {
     rows: %v;
+  }
+  .\[y\:�\16 \] {
+    y: �;
   }
   .outline-none {
     --tw-outline-style: none;

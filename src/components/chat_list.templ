@@ -79,20 +79,12 @@ templ ChatList(chatList []types.ChatDto) {
                 const userId = this.getAttribute("data-user-id");
                 const groupId = this.getAttribute("data-group-id");
 
-                if (userId !== "" && userId !== lastActiveChatId) {
-                    htmx.ajax("GET", `/chat?userId=${userId}`, {target:"#main__content", swap:"innerHTML"}).then(() => {
-                        const unreadPeerChat = document.getElementById(`unread__peer__chat__${userId}`);
-                        unreadPeerChat.innerHTML = 0;
-                        unreadPeerChat.className = "invisible";
-                    });
+                if (userId && userId !== "" && userId !== lastActiveChatId) {
                     lastActiveChatId = userId;
-                } else if (groupId !== "" && groupId !== lastActiveChatId) {
-                    htmx.ajax("GET", `/chat?groupId=${groupId}`, {target:"#main__content", swap:"innerHTML"}).then(() => {
-                        const unreadGroupChat = document.getElementById(`unread__group__chat__${groupId}`);
-                        unreadGroupChat.innerHTML = 0;
-                        unreadGroupChat.className = "invisible";
-                    });
+                    htmx.ajax("GET", `/chat?userId=${userId}`, {target:"#main__content", swap:"innerHTML"});
+                } else if (groupId && groupId !== "" && groupId !== lastActiveChatId) {
                     lastActiveChatId = groupId;
+                    htmx.ajax("GET", `/chat?groupId=${groupId}`, {target:"#main__content", swap:"innerHTML"});
                 }
             });
         });
@@ -117,6 +109,13 @@ templ ChatList(chatList []types.ChatDto) {
                     if (group) {
                         group.innerHTML = parseInt(sender.innerHTML) + 1;
                         group.className = "absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full";
+                    }
+                }
+            } else if (data.type === "EXIT_GROUP") {
+                if (data.body.senderId === myUserId) {
+                    const group = document.getElementById(`group__chat__${data.body.groupId}`);
+                    if (group) {
+                        group.remove();
                     }
                 }
             }

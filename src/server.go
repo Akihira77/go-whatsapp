@@ -74,6 +74,7 @@ func pageRouter(router *gin.Engine, authenticatedPage *gin.RouterGroup, userServ
 	authenticatedPage.GET("/users/edit", pageHandler.RenderEditProfile)
 	authenticatedPage.GET("/users/change-password", pageHandler.RenderChangePassword)
 	authenticatedPage.POST("/groups", pageHandler.CreateGroup)
+	authenticatedPage.DELETE("/groups/:groupId", pageHandler.ExitGroup)
 
 	router.GET("/signup", pageHandler.RenderSignup)
 	router.GET("/signin", pageHandler.RenderSignin)

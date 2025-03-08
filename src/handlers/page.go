@@ -7,6 +7,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"sort"
 	"time"
 
 	"github.com/Akihira77/go_whatsapp/src/components"
@@ -101,7 +102,7 @@ func (ph *PageHandler) RenderChatPage(c *gin.Context) {
 			return
 		}
 
-		msgs, err := ph.chatService.MarkMessagesAsRead(c, senderId, user.ID, "")
+		msgs, err := ph.chatService.MarkMessagesAsRead(c, senderId, &user.ID, nil)
 		if err != nil {
 			slog.Error("Retrieving reads messages",
 				"error", err,
@@ -120,7 +121,7 @@ func (ph *PageHandler) RenderChatPage(c *gin.Context) {
 			return
 		}
 
-		msgs, err := ph.chatService.MarkMessagesAsRead(c, senderId, user.ID, groupId)
+		msgs, err := ph.chatService.MarkMessagesAsRead(c, senderId, nil, &groupId)
 		if err != nil {
 			slog.Error("Retrieving reads messages",
 				"error", err,
@@ -129,6 +130,12 @@ func (ph *PageHandler) RenderChatPage(c *gin.Context) {
 		}
 		g.Messages = msgs
 
+		sort.Slice(g.Member, func(i, j int) bool {
+			memberI := utils.GetFullName(&g.Member[i].User)
+			memberJ := utils.GetFullName(&g.Member[j].User)
+
+			return memberI <= memberJ
+		})
 		components.GroupPage(user, g).Render(c, c.Writer)
 	}
 }
@@ -323,6 +330,7 @@ func (ph *PageHandler) CreateGroup(c *gin.Context) {
 
 	data.Creator = user
 
+	member = append(member, user.ID)
 	group, err := ph.userService.CreateGroup(ctx, data, imageData, member)
 	if err != nil {
 		slog.Error("Failed creating group",
@@ -340,5 +348,32 @@ func (ph *PageHandler) CreateGroup(c *gin.Context) {
 		)
 	}
 
+	// c.Header("HX-Redirect", "/")
 	views.Home(chatList, group).Render(c, c.Writer)
+}
+
+func (ph *PageHandler) ExitGroup(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, 500*time.Millisecond)
+	defer cancel()
+
+	user, ok := c.MustGet("user").(*types.User)
+	if !ok {
+		slog.Error("Failed retrieve user's data from context")
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Failed retrieving your user info"})
+		return
+	}
+
+	groupId := c.Param("groupId")
+	group, err := ph.userService.FindGroupByID(ctx, groupId)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"message": "Group does not found"})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed searching group information"})
+		return
+	}
+
+	ph.userService.ExitGroup(ctx, user.ID, group)
 }

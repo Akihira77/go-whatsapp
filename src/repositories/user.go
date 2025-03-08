@@ -9,6 +9,7 @@ import (
 	"github.com/Akihira77/go_whatsapp/src/types"
 	"github.com/oklog/ulid/v2"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type UserRepository struct {
@@ -260,19 +261,125 @@ func (ur *UserRepository) FindGroupByID(ctx context.Context, id string) (*types.
 	return &u, res.Error
 }
 
-func (ur *UserRepository) GetGroupMembers(ctx context.Context, groupId string) ([]types.UserGroup, error) {
-	var members []types.UserGroup
+func (ur *UserRepository) IsGroupExistByID(ctx context.Context, id string) (bool, error) {
+	var g types.Group
 
 	res := ur.
 		store.
 		DB.
 		Debug().
-		Model(&types.UserGroup{}).
+		Model(&types.Group{}).
 		WithContext(ctx).
-		Preload("User", func(tx *gorm.DB) *gorm.DB {
-			return tx.Select("id", "first_name", "last_name", "email")
-		}).
+		Select("id").
+		Where("id = ?", id).
+		First(&g)
+
+	return &g != nil, res.Error
+}
+
+func (ur *UserRepository) DeleteGroup(ctx context.Context, groupId string) error {
+	tx := ur.store.DB.Debug().Begin()
+
+	var msgs []types.Message
+
+	res := tx.
+		Model(&types.Message{}).
+		Clauses(clause.Returning{Columns: []clause.Column{{Name: "id"}}}).
 		Where("group_id = ?", groupId).
+		Delete(&msgs)
+	if res.Error != nil {
+		tx.Rollback()
+
+		return res.Error
+	}
+
+	res = tx.
+		Model(&types.UserGroup{}).
+		Where("group_id = ?", groupId).
+		Delete(&types.UserGroup{})
+	if res.Error != nil {
+		tx.Rollback()
+
+		return res.Error
+	}
+
+	res = tx.
+		Model(&types.Group{}).
+		WithContext(ctx).
+		Where("id = ?", groupId).
+		Delete(&types.Group{})
+	if res.Error != nil {
+		tx.Rollback()
+
+		return res.Error
+	}
+
+	res = tx.Commit()
+	return res.Error
+}
+
+func (ur *UserRepository) ExitGroup(ctx context.Context, userId, groupId string) error {
+	tx := ur.store.DB.Debug().Begin()
+
+	var msgs []types.Message
+	res := tx.
+		WithContext(ctx).
+		Model(&msgs).
+		Clauses(clause.Returning{Columns: []clause.Column{{Name: "id"}}}).
+		Where("sender_id = ? AND group_id = ?", userId, groupId).
+		Updates(types.Message{
+			IsDeleted: true,
+			Content:   "",
+		})
+	if res.Error != nil {
+		tx.Rollback()
+
+		return res.Error
+	}
+
+	msgIds := make([]string, 0)
+	for _, msg := range msgs {
+		msgIds = append(msgIds, msg.ID)
+	}
+
+	res = tx.
+		WithContext(ctx).
+		Model(&types.File{}).
+		Where("message_id IN (?)", msgIds).
+		Delete(&types.File{})
+	if res.Error != nil {
+		tx.Rollback()
+
+		return res.Error
+	}
+
+	res = tx.
+		Debug().
+		WithContext(ctx).
+		Model(&types.UserGroup{}).
+		Where("user_id = ? AND group_id = ?", userId, groupId).
+		Delete(&types.UserGroup{})
+	if res.Error != nil {
+		tx.Rollback()
+
+		return res.Error
+	}
+
+	res = tx.Commit()
+	return res.Error
+}
+
+func (ur *UserRepository) GetGroupMembers(ctx context.Context, groupId string) ([]types.UserInfo, error) {
+	var members []types.UserInfo
+
+	res := ur.
+		store.
+		DB.
+		Debug().
+		Model(&types.User{}).
+		WithContext(ctx).
+		Joins("JOIN user_groups ON users.id = user_groups.user_id AND user_groups.group_id = ?", groupId).
+		Order("(first_name || ' ' || last_name) ASC").
 		Find(&members)
 
 	return members, res.Error

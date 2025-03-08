@@ -33,21 +33,7 @@ templ MakeGroup(users []types.User, q *types.UserQuerySearch) {
 					<ul
 						id="user_in_group"
 						class="relative flex flex-wrap gap-2 pb-4 text-xs"
-					>
-						<li
-							id="user__${user.id}"
-							class="flex items-center gap-x-4 border rounded-full pl-2"
-						>
-							<span>Dika Demo</span>
-							<button
-								type="button"
-								onclick='removeThis("${user.id}")'
-								class="cursor-pointer hover:bg-slate-500 hover:text-white p-2 rounded-full"
-							>
-								<i class="fa-solid fa-xmark"></i>
-							</button>
-						</li>
-					</ul>
+					></ul>
 					<div class="relative">
 						<input
 							id="search__user"
@@ -84,15 +70,6 @@ templ MakeGroup(users []types.User, q *types.UserQuerySearch) {
 				</div>
 			</div>
 			<script>
-            window.addEventListener("beforeunload", function (event) {
-                event.preventDefault();
-                console.log("userlist still has value");
-
-                if (userList.size > 0) {
-                    event.returnValue = "You have unsaved changes. Do you really want to leave?";
-                }
-            });
-
             function nextNamingGroup() {
                 if (userList.size === 0) {
                     console.log("next Naming Group");
