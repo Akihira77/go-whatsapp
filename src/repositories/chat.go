@@ -1,10 +1,16 @@
 package repositories
 
 import (
+	"bytes"
 	"context"
+	"mime/multipart"
+	"net/http"
+	"sync"
 
 	"github.com/Akihira77/go_whatsapp/src/store"
 	"github.com/Akihira77/go_whatsapp/src/types"
+	"github.com/Akihira77/go_whatsapp/src/utils"
+	"github.com/oklog/ulid/v2"
 )
 
 type ChatRepository struct {
@@ -26,6 +32,7 @@ func (cr *ChatRepository) GetMessages(ctx context.Context, userIds [2]string) ([
 		Debug().
 		Model(&types.Message{}).
 		Preload("Sender").
+		Preload("Files").
 		WithContext(ctx).
 		Where("(sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)", userIds[0], userIds[1], userIds[1], userIds[0]).
 		Find(&msgs)
@@ -42,6 +49,7 @@ func (cr *ChatRepository) GetMessagesInsideGroup(ctx context.Context, groupId st
 		Debug().
 		Model(&types.Message{}).
 		Preload("Sender").
+		Preload("Files").
 		WithContext(ctx).
 		Where("group_id", groupId).
 		Find(&msgs)
@@ -140,15 +148,73 @@ func (cr *ChatRepository) SearchChat(ctx context.Context, myUserId, groupName, u
 	return chatHistories, res.Error
 }
 
-func (cr *ChatRepository) AddMessage(ctx context.Context, data types.Message) error {
-	res := cr.
-		store.
-		DB.
+func (cr *ChatRepository) AddMessage(ctx context.Context, data types.Message, fileHeaders []*multipart.FileHeader) (*types.Message, error) {
+	tx := cr.store.DB.Begin().Debug().WithContext(ctx)
+
+	res := tx.
 		Model(&types.Message{}).
 		WithContext(ctx).
 		Create(&data)
 
-	return res.Error
+	if res.Error != nil {
+		tx.Rollback()
+		return nil, res.Error
+	}
+
+	type result struct {
+		Data     *bytes.Buffer
+		FileName string
+		FileType string
+		Error    error
+	}
+	results := make(chan result, len(fileHeaders))
+	var wg sync.WaitGroup
+	var fileList []types.File
+	for _, fileHeader := range fileHeaders {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			buf, err := utils.ReadFile(fileHeader)
+			results <- result{
+				Error:    err,
+				FileName: fileHeader.Filename,
+				FileType: http.DetectContentType(buf.Bytes()),
+				Data:     buf,
+			}
+		}()
+	}
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	for result := range results {
+		if result.Error != nil {
+			tx.Rollback()
+			return nil, result.Error
+		}
+
+		fileList = append(fileList, types.File{
+			ID:        ulid.Make().String(),
+			MessageID: data.ID,
+			Name:      result.FileName,
+			Type:      result.FileType,
+			Data:      result.Data.Bytes(),
+		})
+	}
+
+	res = tx.
+		Model(&types.File{}).
+		Create(&fileList)
+	if res.Error != nil {
+		tx.Rollback()
+		return nil, res.Error
+	}
+
+	res = tx.Commit()
+	data.Files = fileList
+	return &data, res.Error
 }
 
 func (cr *ChatRepository) EditMessage(ctx context.Context, data types.Message) error {
@@ -178,10 +244,25 @@ func (cr *ChatRepository) MarkMessagesAsRead(ctx context.Context, senderId strin
 		store.
 		DB.
 		Debug().
-		Model(&types.Message{}).
 		WithContext(ctx).
+		Model(&types.Message{}).
 		Where("(sender_id = ? AND receiver_id IS ? AND group_id IS ?) AND is_read = false", senderId, receiverId, groupId).
 		Update("is_read", true)
 
 	return res.Error
+}
+
+func (cr *ChatRepository) FindFileInsideChat(ctx context.Context, messageId, fileId string) (*types.File, error) {
+	var f types.File
+	res := cr.
+		store.
+		DB.
+		Debug().
+		WithContext(ctx).
+		Model(&types.File{}).
+		Where("message_id = ? AND id = ?", messageId, fileId).
+		Select("data").
+		First(&f)
+
+	return &f, res.Error
 }
