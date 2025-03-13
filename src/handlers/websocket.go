@@ -49,7 +49,9 @@ type WsMessageBody struct {
 	SenderID   string       `json:"senderId"`
 	ReceiverID *string      `json:"receiverId,omitempty"`
 	GroupID    *string      `json:"groupId,omitempty"`
-	Content    string       `json:"content,omitempty"`
+	MessageID  *string      `json:"messageId,omitempty"`
+	FileID     *string      `json:"fileId,omitempty"`
+	Content    *string      `json:"content,omitempty"`
 	Files      []types.File `json:"files,omitempty"`
 	CreatedAt  *time.Time   `json:"createdAt,omitempty"`
 }
@@ -278,7 +280,7 @@ func (c *Client) readPump(userService *services.UserService, chatService *servic
 			slog.Info("Adding message PEER CHAT")
 
 			m, err := chatService.AddMessage(context.Background(), &types.CreateMessage{
-				Content:    data.Body.Content,
+				Content:    *data.Body.Content,
 				SenderID:   data.Body.SenderID,
 				ReceiverID: data.Body.ReceiverID,
 				GroupID:    nil,
@@ -296,7 +298,7 @@ func (c *Client) readPump(userService *services.UserService, chatService *servic
 			slog.Info("Adding message GROUP CHAT")
 
 			m, err := chatService.AddMessage(context.Background(), &types.CreateMessage{
-				Content:    data.Body.Content,
+				Content:    *data.Body.Content,
 				SenderID:   data.Body.SenderID,
 				ReceiverID: nil,
 				GroupID:    data.Body.GroupID,

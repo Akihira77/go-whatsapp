@@ -134,7 +134,7 @@ func (ch *ChatHandler) SendMsg(c *gin.Context) {
 				SenderID:   msg.SenderID,
 				ReceiverID: msg.ReceiverID,
 				GroupID:    msg.GroupID,
-				Content:    msg.Content,
+				Content:    &msg.Content,
 				Files:      msg.Files,
 				CreatedAt:  &msg.CreatedAt,
 			},
@@ -155,10 +155,10 @@ func (ch *ChatHandler) SendMsg(c *gin.Context) {
 	})
 }
 
-func (uh *ChatHandler) FindFileInsideChat(c *gin.Context) {
+func (ch *ChatHandler) FindFileInsideChat(c *gin.Context) {
 	msgId := c.Param("messageId")
 	fileId := c.Param("fileId")
-	file, err := uh.chatService.FindFileInsideChat(c, msgId, fileId)
+	file, err := ch.chatService.FindFileInsideChat(c, msgId, fileId)
 	if err != nil {
 		slog.Error("Failed retrieve chat message")
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Failed retrieve chat data"})
@@ -169,4 +169,62 @@ func (uh *ChatHandler) FindFileInsideChat(c *gin.Context) {
 	c.Header("Content-Type", mimeType)
 	c.Status(http.StatusOK)
 	c.Writer.Write(file.Data)
+}
+
+func (ch *ChatHandler) DeleteFileInsideChat(c *gin.Context) {
+	msgId := c.Param("messageId")
+	fileId := c.Param("fileId")
+
+	user, ok := c.MustGet("user").(*types.User)
+	if !ok {
+		slog.Error("Retrieving user's info")
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Failed retrieving user's info"})
+		return
+	}
+
+	type DeleteFile struct {
+		ReceiverID *string `json:"receiverId"`
+		GroupID    *string `json:"groupId"`
+	}
+
+	var data DeleteFile
+	err := c.ShouldBind(&data)
+	if err != nil {
+		slog.Error("Failed parsing message data from",
+			"user", user.Email,
+		)
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Failed parsing message data"})
+		return
+	}
+
+	err = ch.chatService.DeleteFile(c, msgId, fileId)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
+		return
+	}
+
+	go func() {
+		wsMsg := &WsMessage{
+			Body: &WsMessageBody{
+				SenderID:   user.ID,
+				ReceiverID: data.ReceiverID,
+				GroupID:    data.GroupID,
+				MessageID:  &msgId,
+				FileID:     &fileId,
+				Content:    nil,
+				Files:      nil,
+				CreatedAt:  nil,
+			},
+		}
+
+		if data.GroupID != nil {
+			wsMsg.Type = GROUP_CHAT
+		} else {
+			wsMsg.Type = PEER_CHAT
+		}
+
+		ch.hub.Broadcast <- wsMsg
+	}()
+
+	c.JSON(http.StatusOK, gin.H{"message": "Deleting file success"})
 }

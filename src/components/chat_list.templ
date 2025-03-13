@@ -92,10 +92,30 @@ templ ChatList(chatList []types.ChatDto) {
     webSocket.onMessage((data) => {
         const myUserId = getCookieByName("userId");
         if (data.type === "PEER_CHAT") {
-            appendPeerMessage(myUserId, data.body);
+            const body = data.body;
+            if (body.messageId) {
+                if (body.fileId) {
+                    document.getElementById(body.fileId).remove();
 
-            if (data.body.senderId !== myUserId) {
-                const sender = document.getElementById(`unread__peer__chat__${data.body.senderId}`);
+                    if (body.senderId === myUserId) {
+                        alert("Deleting file success");
+                    }
+                    return;
+                }
+
+                document.getElementById(body.messageId).remove();
+
+                if (body.senderId === myUserId) {
+                    alert("Deleting message success");
+                }
+
+                return;
+            }
+
+            appendPeerMessage(myUserId, body);
+
+            if (body.senderId !== myUserId) {
+                const sender = document.getElementById(`unread__peer__chat__${body.senderId}`);
                 if (sender) {
                     sender.innerHTML = parseInt(sender.innerHTML) + 1;
                     sender.className = "absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full";

@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/Akihira77/go_whatsapp/src/repositories"
 	"github.com/Akihira77/go_whatsapp/src/types"
 	"github.com/oklog/ulid/v2"
+	"gorm.io/gorm"
 )
 
 type ChatService struct {
@@ -157,8 +159,33 @@ func (cs *ChatService) FindFileInsideChat(ctx context.Context, messageId, fileId
 			"fileId", fileId,
 			"err", err,
 		)
-		return nil, err
+
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("File you are searching is not found")
+		}
+
+		return nil, fmt.Errorf("Error while searching file")
 	}
 
 	return f, nil
+}
+
+func (cs *ChatService) DeleteFile(ctx context.Context, messageId, fileId string) error {
+	_, err := cs.FindFileInsideChat(ctx, messageId, fileId)
+	if err != nil {
+		return err
+	}
+
+	err = cs.chatRepository.DeleteFile(ctx, messageId, fileId)
+	if err != nil {
+		slog.Error("Deleting file",
+			"msgId", messageId,
+			"fileId", fileId,
+			"err", err,
+		)
+
+		return err
+	}
+
+	return nil
 }

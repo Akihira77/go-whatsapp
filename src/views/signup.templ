@@ -13,21 +13,16 @@ templ Signup() {
 					hx-post="/api/users/signup"
 					hx-ext="ignore:json-enc"
 				>
-					<div class="relative group mx-auto w-[150px] h-[150px] flex flex-col justify-center items-center rounded-full border">
+					<div
+						class="relative group mx-auto w-[150px] h-[150px] flex flex-col justify-center items-center rounded-full border"
+					>
 						<!-- Hidden file input -->
-						<input
-							id="user__profile"
-							type="file"
-							name="user-profile"
-							class="hidden"
-							accept="image/*"
-						/>
+						<input id="user__profile" type="file" name="user-profile" class="hidden" accept="image/*"/>
 						<!-- Upload button/preview container -->
-						<label
-							for="user__profile"
-							class="block relative cursor-pointer"
-						>
-							<div class="w-[150px] h-[150px] rounded-full bg-dark-gray flex flex-col items-center justify-center overflow-hidden group-hover:opacity-90 transition-opacity">
+						<label for="user__profile" class="block relative cursor-pointer">
+							<div
+								class="w-[150px] h-[150px] rounded-full bg-dark-gray flex flex-col items-center justify-center overflow-hidden group-hover:opacity-90 transition-opacity"
+							>
 								<!-- Preview image container -->
 								<div id="preview-container" class="absolute inset-0 rounded-full w-full h-full">
 									<!-- Default icon shown when no image -->
@@ -57,7 +52,9 @@ templ Signup() {
 								</div>
 							</div>
 							<!-- Hover overlay -->
-							<div class="absolute inset-0 bg-black/30 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+							<div
+								class="absolute inset-0 bg-black/30 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+							>
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
 									class="h-8 w-8 text-white"
@@ -82,23 +79,18 @@ templ Signup() {
 						</label>
 					</div>
 					<div class="grid grid-cols-2 gap-4">
-						<div
-							data-for="firstName"
-							class="space-y-2"
-						>
+						<div data-for="firstName" class="space-y-2">
 							<label for="firstName" class="block text-sm font-medium text-gray-700">First Name</label>
 							<input
 								type="text"
 								id="firstName"
 								name="firstName"
+								focus
 								required
 								class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
 							/>
 						</div>
-						<div
-							data-for="lastName"
-							class="space-y-2"
-						>
+						<div data-for="lastName" class="space-y-2">
 							<label for="lastName" class="block text-sm font-medium text-gray-700">Last Name</label>
 							<input
 								type="text"
@@ -109,10 +101,7 @@ templ Signup() {
 							/>
 						</div>
 					</div>
-					<div
-						data-for="email"
-						class="space-y-2"
-					>
+					<div data-for="email" class="space-y-2">
 						<label for="email" class="block text-sm font-medium text-gray-700">Email</label>
 						<input
 							type="email"
@@ -122,10 +111,7 @@ templ Signup() {
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
 						/>
 					</div>
-					<div
-						data-for="password"
-						class="space-y-2"
-					>
+					<div data-for="password" class="space-y-2">
 						<label for="password" class="block text-sm font-medium text-gray-700">Password</label>
 						<input
 							type="password"
@@ -135,7 +121,10 @@ templ Signup() {
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
 						/>
 					</div>
-					<button type="submit" class="cursor-pointer w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+					<button
+						type="submit"
+						class="cursor-pointer w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+					>
 						Sign Up
 					</button>
 				</form>
@@ -146,24 +135,24 @@ templ Signup() {
 			</div>
 		</div>
 		<script>
-        document.getElementById("user__profile").addEventListener('change', async function(e) {
-            const previewContainer = document.getElementById('preview-container');
-            const file = e.target.files[0];
-            if (file) {
-                const fileBuffer = await file.arrayBuffer();
-                const reader = new FileReader();
+    document.getElementById("user__profile").addEventListener('change', async function (e) {
+        const previewContainer = document.getElementById('preview-container');
+        const file = e.target.files[0];
+        if (file) {
+            const fileBuffer = await file.arrayBuffer();
+            const reader = new FileReader();
 
-                reader.onload = function(e) {
-                    // Create image preview
-                    previewContainer.innerHTML = `
+            reader.onload = function (e) {
+                // Create image preview
+                previewContainer.innerHTML = `
                         <img src="${e.target.result}" 
                              class="rounded-full w-full h-full object-cover" 
                              alt="Profile preview">
                     `;
-                }
-                reader.readAsDataURL(file);
             }
-        });
-    </script>
+            reader.readAsDataURL(file);
+        }
+    });
+</script>
 	}
 }

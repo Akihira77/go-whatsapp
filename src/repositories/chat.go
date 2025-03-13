@@ -167,53 +167,57 @@ func (cr *ChatRepository) AddMessage(ctx context.Context, data types.Message, fi
 		FileType string
 		Error    error
 	}
-	results := make(chan result, len(fileHeaders))
-	var wg sync.WaitGroup
-	var fileList []types.File
-	for _, fileHeader := range fileHeaders {
-		wg.Add(1)
+
+	if len(fileHeaders) > 0 {
+		results := make(chan result, len(fileHeaders))
+		var wg sync.WaitGroup
+		var fileList []types.File
+		for _, fileHeader := range fileHeaders {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+
+				buf, err := utils.ReadFile(fileHeader)
+				results <- result{
+					Error:    err,
+					FileName: fileHeader.Filename,
+					FileType: http.DetectContentType(buf.Bytes()),
+					Data:     buf,
+				}
+			}()
+		}
 		go func() {
-			defer wg.Done()
-
-			buf, err := utils.ReadFile(fileHeader)
-			results <- result{
-				Error:    err,
-				FileName: fileHeader.Filename,
-				FileType: http.DetectContentType(buf.Bytes()),
-				Data:     buf,
-			}
+			wg.Wait()
+			close(results)
 		}()
-	}
-	go func() {
-		wg.Wait()
-		close(results)
-	}()
 
-	for result := range results {
-		if result.Error != nil {
-			tx.Rollback()
-			return nil, result.Error
+		for result := range results {
+			if result.Error != nil {
+				tx.Rollback()
+				return nil, result.Error
+			}
+
+			fileList = append(fileList, types.File{
+				ID:        ulid.Make().String(),
+				MessageID: data.ID,
+				Name:      result.FileName,
+				Type:      result.FileType,
+				Data:      result.Data.Bytes(),
+			})
 		}
 
-		fileList = append(fileList, types.File{
-			ID:        ulid.Make().String(),
-			MessageID: data.ID,
-			Name:      result.FileName,
-			Type:      result.FileType,
-			Data:      result.Data.Bytes(),
-		})
-	}
+		res = tx.
+			Model(&types.File{}).
+			Create(&fileList)
+		if res.Error != nil {
+			tx.Rollback()
+			return nil, res.Error
+		}
 
-	res = tx.
-		Model(&types.File{}).
-		Create(&fileList)
-	if res.Error != nil {
-		tx.Rollback()
-		return nil, res.Error
+		data.Files = fileList
 	}
 
 	res = tx.Commit()
-	data.Files = fileList
 	return &data, res.Error
 }
 
@@ -261,8 +265,20 @@ func (cr *ChatRepository) FindFileInsideChat(ctx context.Context, messageId, fil
 		WithContext(ctx).
 		Model(&types.File{}).
 		Where("message_id = ? AND id = ?", messageId, fileId).
-		Select("data").
 		First(&f)
 
 	return &f, res.Error
+}
+
+func (cr *ChatRepository) DeleteFile(ctx context.Context, messageId, fileId string) error {
+	res := cr.
+		store.
+		DB.
+		Debug().
+		WithContext(ctx).
+		Model(&types.File{}).
+		Where("message_id = ? AND id = ?", messageId, fileId).
+		Delete(&types.File{})
+
+	return res.Error
 }

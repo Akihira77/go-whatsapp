@@ -20,28 +20,56 @@ templ imagePreviewModal() {
 	<div
 		id="imagePreviewModal"
 		class="hidden fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50"
-		onclick={ closePreview() }
+		onClick={ closePreview() }
 	>
 		<div class="relative max-w-4xl max-h-[90vh]" onclick="event.stopPropagation()">
 			<img id="previewImage" class="max-w-4xl max-h-[90vh] w-full h-auto rounded-lg" src="" alt="Preview"/>
 			<button
 				class="absolute rounded-full top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-full cursor-pointer"
-				onclick={ closePreview() }
+				onClick={ closePreview() }
 			>✕</button>
 		</div>
 	</div>
 }
 
-templ imgLayout(file types.File) {
+templ imgLayout(receiver *types.User, file types.File) {
 	<div
-		class="relative group/image aspect-video overflow-hidden rounded-md cursor-pointer"
-		onclick={ previewImage(fmt.Sprintf("/api/messages/%s/%s", file.MessageID, file.ID)) }
+		id={ file.ID }
+		class="relative group/image aspect-video overflow-hidden rounded-md cursor-pointer w-70 h-40 group"
+		onClick={ previewImage(fmt.Sprintf("/api/messages/%s/files/%s", file.MessageID, file.ID)) }
 	>
 		<img
-			src={ fmt.Sprintf("/api/messages/%s/%s", file.MessageID, file.ID) }
+			src={ fmt.Sprintf("/api/messages/%s/files/%s", file.MessageID, file.ID) }
 			alt={ file.Name }
-			class="w-70 h-40 object-cover"
+			class="w-70 h-40 object-cover rounded-md"
 		/>
+		<!-- Delete Button -->
+		@deleteFileButton(receiver, file)
+	</div>
+}
+
+templ deleteFileButton(receiver *types.User, file types.File) {
+	<div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+		<button
+			onClick={ templ.JSFuncCall("deleteFile", receiver, file) }
+			class="cursor-pointer p-1 bg-red-500 hover:bg-red-600 rounded text-white"
+		>
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				width="16"
+				height="16"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			>
+				<path d="M3 6h18"></path>
+				<path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+				<path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+			</svg>
+		</button>
 	</div>
 }
 
@@ -113,7 +141,7 @@ templ ChatPage(receiver *types.User, msgs []types.Message) {
 	<div id="chat" class="chat-bg flex-1 bg-[#e5ddd5] overflow-y-auto p-4">
 		<!-- Messages will go here -->
 		for _, msg := range msgs {
-			<div class="flex gap-4">
+			<div id={ msg.ID } class="flex gap-4 border-y-2 border-slate-200">
 				<div
 					if msg.SenderID !=receiver.ID {
 						class="flex flex-1 justify-end min-w-0"
@@ -144,19 +172,20 @@ templ ChatPage(receiver *types.User, msgs []types.Message) {
 							</div>
 						}
 						if len(msg.Files) > 0 {
-							<div class="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
+							<div class="mt-2 grid grid-cols-2 gap-2 relative">
 								for _, file := range msg.Files {
 									if strings.HasPrefix(file.Type, "image/") {
-										@imgLayout(file)
+										@imgLayout(receiver, file)
 									} else {
 										<!-- Tentukan ikon berdasarkan jenis file -->
 										<div
+											id={ file.ID }
 											if msg.SenderID !=receiver.ID {
 												dir="rtl"
-												class="relative group/file rounded-md p-3 flex flex-col items-center justify-center gap-3 bg-gray-800 text-white max-w-70 max-h-40"
+												class="relative group/file rounded-md p-3 flex flex-col items-center justify-center gap-3 bg-gray-800 text-white w-70 h-40 group"
 											} else {
 												dir="ltr"
-												class="relative group/file rounded-md p-3 flex flex-col items-center justify-center gap-3 bg-gray-800 text-white max-w-70 max-h-40"
+												class="relative group/file rounded-md p-3 flex flex-col items-center justify-center gap-3 bg-gray-800 text-white w-70 h-40 group"
 											}
 										>
 											if strings.HasPrefix(file.Type, "video/") {
@@ -209,7 +238,9 @@ templ ChatPage(receiver *types.User, msgs []types.Message) {
 													<polyline points="14 2 14 8 20 8"></polyline>
 												</svg>
 											}
-											<span class="text-gray-300 truncate max-w-[220px]">{ file.Name }</span>
+											<span dir="ltr" class="text-gray-300 truncate max-w-[220px]">{ file.Name }</span>
+											<!-- Delete Button -->
+											@deleteFileButton(receiver, file)
 										</div>
 									}
 								}
@@ -362,10 +393,9 @@ templ ChatPage(receiver *types.User, msgs []types.Message) {
 
     function resizeTextarea() {
         const textarea = document.getElementById('chat__input');
-        textarea.style.height = Math.min(textarea.scrollHeight, 40) + 'px';
+        textarea.style.height = "auto";
+        textarea.style.height = Math.max(textarea.scrollHeight, 40) + 'px';
     }
-
-    window.addEventListener('resize', resizeTextarea);
 
     // Store files array
     let attachedFiles = [];
@@ -519,6 +549,8 @@ templ ChatPage(receiver *types.User, msgs []types.Message) {
         submit.disabled = isDisable;
         submit.classList.toggle("hover:bg-[#075E54]", !isDisable);
         submit.classList.toggle("cursor-pointer", !isDisable);
+
+        resizeTextarea();
     });
 
     document.getElementById('chat__input').addEventListener("keydown", (event) => {
@@ -657,7 +689,7 @@ templ ChatPage(receiver *types.User, msgs []types.Message) {
                     imageWrapper.className = "relative group/image aspect-video bg-discord-light rounded-md max-w-70 max-h-40";
 
                     const image = document.createElement("img");
-                    image.src = `/api/messages/${file.messageId}/${file.id}`;
+                    image.src = `/api/messages/${file.messageId}/files/${file.id}`;
                     image.alt = file.name;
                     image.className = "w-70 h-45 object-contain";
 
@@ -731,6 +763,27 @@ templ ChatPage(receiver *types.User, msgs []types.Message) {
         // document.getElementById('chat').insertAdjacentHTML('beforeend', newMsg);
         document.getElementById('chat').appendChild(messageWrapper);
         scrollToBottom();
+    }
+
+    async function deleteFile(receiver, file) {
+        const confirmation = confirm(`Delete file ${file.name}?`);
+
+        if (confirmation) {
+            const res = await fetch(`http://${window.location.host}/api/messages/${file.messageId}/files/${file.id}`, {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    receiverId: receiver.id,
+                })
+            });
+
+            if (!res.ok) {
+                alert("Deleting file failed");
+                return;
+            }
+        }
     }
 
     scrollToBottom();
