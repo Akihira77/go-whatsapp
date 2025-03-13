@@ -4,13 +4,84 @@ import (
 	"fmt"
 	"github.com/Akihira77/go_whatsapp/src/types"
 	"github.com/Akihira77/go_whatsapp/src/utils"
+	"strings"
 )
+
+script previewImage(src string) {
+document.getElementById('previewImage').src = src;
+document.getElementById('imagePreviewModal').classList.remove('hidden');
+}
+
+script closePreview() {
+document.getElementById('imagePreviewModal').classList.add('hidden');
+}
+
+templ imagePreviewModal() {
+	<div
+		id="imagePreviewModal"
+		class="hidden fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50"
+		onClick={ closePreview() }
+	>
+		<div class="relative max-w-4xl max-h-[90vh]" onclick="event.stopPropagation()">
+			<img id="previewImage" class="max-w-4xl max-h-[90vh] w-full h-auto rounded-lg" src="" alt="Preview"/>
+			<button
+				class="absolute rounded-full top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-full cursor-pointer"
+				onClick={ closePreview() }
+			>✕</button>
+		</div>
+	</div>
+}
+
+templ imgLayout(receiver *types.User, file types.File) {
+	<div
+		id={ file.ID }
+		class="relative group/image aspect-video overflow-hidden rounded-md cursor-pointer w-70 h-40 group"
+		onClick={ previewImage(fmt.Sprintf("/api/messages/%s/files/%s", file.MessageID, file.ID)) }
+	>
+		<img
+			src={ fmt.Sprintf("/api/messages/%s/files/%s", file.MessageID, file.ID) }
+			alt={ file.Name }
+			class="w-70 h-40 object-cover rounded-md"
+		/>
+		<!-- Delete Button -->
+		@deleteFileButton(receiver, file)
+	</div>
+}
+
+templ deleteFileButton(receiver *types.User, file types.File) {
+	<div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+		<button
+			onClick={ templ.JSFuncCall("deleteFile", receiver, file) }
+			class="cursor-pointer p-1 bg-red-500 hover:bg-red-600 rounded text-white"
+		>
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				width="16"
+				height="16"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			>
+				<path d="M3 6h18"></path>
+				<path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+				<path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+			</svg>
+		</button>
+	</div>
+}
 
 templ ChatPage(receiver *types.User, msgs []types.Message) {
 	<!-- Chat Header -->
 	<div class="bg-gray-200 p-4 flex items-center">
 		<div class="relative">
-			<img src={ fmt.Sprintf("/api/users/images/%s", receiver.ID) } alt="Profile" class="w-12 h-12 rounded-full object-cover"/>
+			<img
+				src={ fmt.Sprintf("/api/users/images/%s", receiver.ID) }
+				alt="Profile"
+				class="w-12 h-12 rounded-full object-cover"
+			/>
 			if receiver.Status == types.ONLINE {
 				<div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
 			} else {
@@ -67,180 +138,654 @@ templ ChatPage(receiver *types.User, msgs []types.Message) {
 		</div>
 	</div>
 	<!-- Chat Messages -->
-	<div
-		id="chat"
-		class="chat-bg flex-1 bg-[#e5ddd5] overflow-y-auto p-4"
-	>
+	<div id="chat" class="chat-bg flex-1 bg-[#e5ddd5] overflow-y-auto p-4">
 		<!-- Messages will go here -->
 		for _, msg := range msgs {
-			if msg.SenderID != receiver.ID {
+			<div id={ msg.ID } class="flex gap-4 border-y-2 border-slate-200">
 				<div
-					id="me"
-					class="flex mb-4"
+					if msg.SenderID !=receiver.ID {
+						class="flex flex-1 justify-end min-w-0"
+					} else {
+						class="flex flex-1 justify-start min-w-0"
+					}
 				>
-					<div class="flex flex-col flex-1">
-						<div class="w-max bg-[#025D4B] text-white rounded-lg px-3 py-2 rounded-br-none shadow-md relative self-end">
-							<div class="whitespace-pre-wrap">{ msg.Content }</div>
-							<div class="flex justify-end">
-								<span class="text-[10px] text-white/75 ml-1.5 self-end">{ msg.CreatedAt.Format("2/1/2006 3:04 PM") }</span>
-							</div>
+					<div class="w-max text-white rounded-lg px-3 py-2 shadow-md relative max-w-3/4">
+						<!-- Header -->
+						<div
+							if msg.SenderID !=receiver.ID {
+								class="flex items-center flex-row-reverse gap-2 mb-1"
+							} else {
+								class="flex items-center gap-2 mb-1"
+							}
+						>
+							<img
+								src={ fmt.Sprintf("/api/users/images/%s", msg.SenderID) }
+								alt="Sender Profile"
+								class="w-8 h-8 rounded-full"
+							/>
+							<span class="text-xs text-gray-400">{ msg.CreatedAt.Format("2/1/2006 3:04 PM") }</span>
 						</div>
+						<!-- Message content -->
+						if msg.Content != "" {
+							<div class="whitespace-pre-wrap">
+								{ msg.Content }
+							</div>
+						}
+						if len(msg.Files) > 0 {
+							<div class="mt-2 grid grid-cols-2 gap-2 relative">
+								for _, file := range msg.Files {
+									if strings.HasPrefix(file.Type, "image/") {
+										@imgLayout(receiver, file)
+									} else {
+										<!-- Tentukan ikon berdasarkan jenis file -->
+										<div
+											id={ file.ID }
+											if msg.SenderID !=receiver.ID {
+												dir="rtl"
+												class="relative group/file rounded-md p-3 flex flex-col items-center justify-center gap-3 bg-gray-800 text-white w-70 h-40 group"
+											} else {
+												dir="ltr"
+												class="relative group/file rounded-md p-3 flex flex-col items-center justify-center gap-3 bg-gray-800 text-white w-70 h-40 group"
+											}
+										>
+											if strings.HasPrefix(file.Type, "video/") {
+												<svg
+													class="w-8 h-8 text-gray-300"
+													fill="none"
+													stroke="currentColor"
+													stroke-width="2"
+													stroke-linecap="round"
+													stroke-linejoin="round"
+												>
+													<path d="M23 7l-7 5 7 5V7z"></path>
+													<rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+												</svg>
+											} else if strings.HasPrefix(file.Type, "audio/") {
+												<svg
+													class="w-8 h-8 text-gray-300"
+													fill="none"
+													stroke="currentColor"
+													stroke-width="2"
+													stroke-linecap="round"
+													stroke-linejoin="round"
+												>
+													<path d="M9 18V5l12-2v13"></path>
+													<circle cx="6" cy="18" r="3"></circle>
+													<circle cx="18" cy="16" r="3"></circle>
+												</svg>
+											} else if strings.HasSuffix(file.Name, ".pdf") {
+												<svg
+													class="w-8 h-8 text-red-400"
+													fill="none"
+													stroke="currentColor"
+													stroke-width="2"
+													stroke-linecap="round"
+													stroke-linejoin="round"
+												>
+													<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+													<polyline points="14 2 14 8 20 8"></polyline>
+												</svg>
+											} else {
+												<svg
+													class="w-8 h-8 text-gray-400"
+													fill="none"
+													stroke="currentColor"
+													stroke-width="2"
+													stroke-linecap="round"
+													stroke-linejoin="round"
+												>
+													<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+													<polyline points="14 2 14 8 20 8"></polyline>
+												</svg>
+											}
+											<span dir="ltr" class="text-gray-300 truncate max-w-[220px]">{ file.Name }</span>
+											<!-- Delete Button -->
+											@deleteFileButton(receiver, file)
+										</div>
+									}
+								}
+							</div>
+						}
 					</div>
 				</div>
-			} else {
-				<div
-					id="not-me"
-					class="flex mb-4"
-				>
-					<div class="flex flex-col flex-1">
-						<div class="w-max bg-[#1f2c34] text-white rounded-lg px-3 py-2 rounded-bl-none shadow-md relative self-start">
-							<div class="whitespace-pre-wrap">{ msg.Content }</div>
-							<div class="flex justify-end">
-								<span class="text-[10px] text-white/75 ml-1.5 self-end">{ msg.CreatedAt.Format("2/1/2006 3:04 PM") }</span>
-							</div>
-						</div>
-					</div>
-				</div>
-			}
+			</div>
 		}
 	</div>
 	<!-- Message Input -->
 	<div
 		id="chat__container"
-		class="bg-gray-200 p-4 flex items-center"
+		class="bg-gray-200 p-4"
 		data-receiver-id={ receiver.ID }
 		data-receiver-status={ string(receiver.Status) }
 	>
-		<div
-			id="chat__form"
-			data-for="chatInput"
-			class="flex w-full items-center"
-		>
-			<i class="fas fa-smile text-gray-600 mr-4"></i>
-			<i class="fas fa-paperclip text-gray-600 mr-4"></i>
-			<textarea
-				id="chat__input"
-				name="chatInput"
-				placeholder="Type a message"
-				class="flex-1 py-2 px-4 bg-white rounded-md text-sm focus:outline-none resize-none overflow-auto min-h-[40px] max-h-[150px] hide-scrollbar"
-				autofocus
-				rows="1"
-				wrap="soft"
-				maxlength="999"
-				required
-			></textarea>
-			<i class="fas fa-microphone text-gray-600 ml-4"></i>
-		</div>
-	</div>
-	<script>
-        document.getElementById('chat__toggle')?.addEventListener('click', () => {
-            document.getElementById('chat__menu').classList.toggle('hidden');
-        });
-
-        window.addEventListener('click', (event) => {
-            const dropdownMenu = document.getElementById('chat__menu');
-            const chatToggle = document.getElementById('chat__toggle');
-            if (chatToggle && dropdownMenu && !chatToggle.contains(event.target) && !dropdownMenu.contains(event.target)) {
-                dropdownMenu.classList.add('hidden');
-            }
-        });
-
-        document.body.addEventListener('htmx:configRequest', function(event) {
-            if (event.target.id === 'chat__container') {
-                event.preventDefault();  // This stops htmx from sending the request
-            }
-        });
-
-        function resizeTextarea() {
-            const textarea = document.getElementById('chat__input');
-            textarea.style.height = Math.min(textarea.scrollHeight, 40) + 'px';
-        }
-
-        window.addEventListener('resize', resizeTextarea);
-
-        document.getElementById('chat__input').addEventListener("keydown", (event) => {
-            const chatForm = document.getElementById("chat__container");
-            const receiverId = chatForm.getAttribute("data-receiver-id");
-
-            if (!hasTyped && event.key.length === 1) {
-                hasTyped = true;
-
-                webSocket.sendMessage({
-                    type: "MARK_MSGS_AS_READ",
-                    body: {
-                        senderId: receiverId,
-                    },
-                })
-
-                const sender = document.getElementById(`unread__peer__chat__${receiverId}`);
-                if (sender) {
-                    sender.className = "invisible";
-                    sender.innerHTML = 0;
-                }
-            }
-
-            if (!event.shiftKey && event.key === "Enter") {
-                event.preventDefault();
-                console.log("peer chat submitted");
-
-                const receiverStatus = chatForm.getAttribute("data-receiver-status");
-                let chatInput = document.getElementById("chat__input");
-                const myUserId = getCookieByName("userId");
-                if (!chatInput.value.trim()) return; // Prevent empty messages
-
-                webSocket.sendMessage({
-                    type: "PEER_CHAT",
-                    body: {
-                        receiverId: receiverId,
-                        content: chatInput.value
-                    },
-                });
-
-                chatInput.value = '';
-                hasTyped = false;
-            }
-
-            resizeTextarea();
-        });
-        resizeTextarea();
-
-        function scrollToBottom() {
-            const chatContainer = document.getElementById("chat");
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-
-        // Append message to the chat box
-        function appendPeerMessage(myUserId, senderId, content, createdAt) {
-            const date = new Date(createdAt);
-            const chatContainer = document.getElementById("chat");
-            const formattedDate = date.toLocaleString('en-US', {
-                day: 'numeric',
-                month: 'numeric',
-                year: 'numeric',
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: true
-            }).replace('am', 'AM').replace('pm', 'PM');
-
-            const newMsg = `
-				<div
-					id="${myUserId === senderId? "me" : "not-me"}"
-					class="flex mb-4"
-				>
-					<div class="flex flex-col flex-1">
-						<div class="w-max ${myUserId === senderId? "bg-[#025D4B] self-end" : "bg-[#1f2c34] self-start"} text-white rounded-lg px-3 py-2 rounded-br-none shadow-md relative"]>
-							<div class="whitespace-pre-wrap">${ content }</div>
-							<div class="flex justify-end">
-								<span class="text-[10px] text-white/75 ml-1.5 self-end">${ formattedDate }</span>
-							</div>
-						</div>
+		<!-- File Preview Container -->
+		<div class="w-full mx-auto max-w-5xl">
+			<div id="file-preview-container" class="flex flex-row overflow-x-auto pb-2 gap-3 mb-4 hidden">
+				<!-- File previews will be inserted here -->
+			</div>
+			<div id="chat__form" data-for="chatInput" class="flex gap-x-2 w-full items-center">
+				<!-- Attachment Button with Dropdown -->
+				<div class="relative" id="attachment-container">
+					<button id="attachment-button" class="cursor-pointer p-2 rounded-full text-gray-600 hover:bg-gray-200">
+						<!-- Paperclip Icon -->
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="24"
+							height="24"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							class="lucide lucide-paperclip"
+						>
+							<path
+								d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"
+							></path>
+						</svg>
+					</button>
+					<!-- Dropdown Menu -->
+					<div
+						id="attachment-dropdown"
+						class="absolute bottom-full left-0 mb-2 hidden w-40 bg-white rounded-lg shadow-lg p-2"
+					>
+						<button
+							id="file-button"
+							class="cursor-pointer flex items-center gap-2 w-full text-left px-3 py-2 rounded-md hover:bg-gray-100"
+						>
+							<!-- File Icon -->
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="20"
+								height="20"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								class="lucide lucide-file"
+							>
+								<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+								<polyline points="14 2 14 8 20 8"></polyline>
+							</svg>
+							File
+						</button>
+						<button
+							id="contact-button"
+							class="cursor-pointer flex items-center gap-2 w-full text-left px-3 py-2 rounded-md hover:bg-gray-100"
+						>
+							<!-- Contact Icon -->
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="20"
+								height="20"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								class="lucide lucide-user"
+							>
+								<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+								<circle cx="12" cy="7" r="4"></circle>
+							</svg>
+							Contact
+						</button>
 					</div>
 				</div>
+				<textarea
+					id="chat__input"
+					name="chatInput"
+					placeholder="Type a message"
+					class="flex-1 py-2 px-4 bg-white rounded-md text-sm focus:outline-none resize-none overflow-auto min-h-[40px] max-h-[150px] hide-scrollbar"
+					autofocus
+					rows="1"
+					wrap="soft"
+					maxlength="999"
+					required
+				></textarea>
+				<!-- Send Button -->
+				<button id="submit__chat" disabled onclick="sendChat()" class="p-2 bg-[#128C7E] text-white rounded-md">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="24"
+						height="24"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						class="lucide lucide-send"
+					>
+						<path d="m22 2-7 20-4-9-9-4Z"></path>
+						<path d="M22 2 11 13"></path>
+					</svg>
+				</button>
+			</div>
+		</div>
+		<!-- Hidden file input -->
+		<input type="file" multiple id="file-input" class="hidden"/>
+		<!-- Image Preview Modal -->
+		@imagePreviewModal()
+	</div>
+	<script>
+    document.getElementById('chat__toggle')?.addEventListener('click', () => {
+        document.getElementById('chat__menu').classList.toggle('hidden');
+    });
+
+    window.addEventListener('click', (event) => {
+        const dropdownMenu = document.getElementById('chat__menu');
+        const chatToggle = document.getElementById('chat__toggle');
+        if (chatToggle && dropdownMenu && !chatToggle.contains(event.target) && !dropdownMenu.contains(event.target)) {
+            dropdownMenu.classList.add('hidden');
+        }
+    });
+
+    document.body.addEventListener('htmx:configRequest', function (event) {
+        if (event.target.id === 'chat__container') {
+            event.preventDefault();  // This stops htmx from sending the request
+        }
+    });
+
+    function resizeTextarea() {
+        const textarea = document.getElementById('chat__input');
+        textarea.style.height = "auto";
+        textarea.style.height = Math.max(textarea.scrollHeight, 40) + 'px';
+    }
+
+    // Store files array
+    let attachedFiles = [];
+
+    // File preview template function
+    function createFilePreview(file, index) {
+        const isImage = file.type.startsWith('image/');
+        const previewEl = document.createElement('div');
+        previewEl.className = 'relative rounded-md overflow-hidden group';
+
+        // Create preview content based on file type
+        if (isImage) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const img = new Image();
+                img.onload = function () {
+                    const isPortrait = img.height > img.width;
+                    previewEl.innerHTML = `
+                        <div class="h-36 flex items-center justify-center bg-black">
+                            <img 
+                            src="${e.target.result}" 
+                            class="${isPortrait ? 'h-full w-auto' : 'w-full h-auto'} max-h-36 max-w-full object-contain" alt="${file.name}" />
+                        </div>
+                        ${getFileInfoOverlay(file, index)}
+                    `;
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        } else {
+            previewEl.innerHTML = `
+                <div class="p-4 flex items-center justify-center gap-3 h-36 w-48 bg-black">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400">
+                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                </div>
+                <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onclick="removeFile(${index})" class="cursor-pointer p-1 bg-red-500 hover:bg-red-600 rounded text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                        </svg>
+                    </button>
+                </div>
+                ${getFileInfoOverlay(file, index)}
             `;
-            document.getElementById('chat').insertAdjacentHTML('beforeend', newMsg);
-            scrollToBottom();
         }
 
+        return previewEl;
+    }
+
+    // Fungsi tambahan untuk overlay informasi file dan tombol remove
+    function getFileInfoOverlay(file, index) {
+        return `
+        <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button onclick="removeFile(${index})" class="cursor-pointer p-1 bg-red-500 hover:bg-red-600 rounded text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                </svg>
+            </button>
+        </div>
+        <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-sm p-2 truncate">
+            ${file.name}
+        </div>
+    `;
+    }
+
+    // Remove file function
+    function removeFile(index) {
+        attachedFiles.splice(index, 1);
+        updatePreviews();
+    }
+
+    // Update previews function
+    function updatePreviews() {
+        const container = document.getElementById('file-preview-container');
+
+        // Show/hide container based on whether there are files
+        if (attachedFiles.length === 0) {
+            container.classList.add('hidden');
+        } else {
+            container.classList.remove('hidden');
+        }
+
+        container.innerHTML = '';
+        attachedFiles.forEach((file, index) => {
+            container.appendChild(createFilePreview(file, index));
+        });
+    }
+
+    // Handle file selection
+    document.getElementById('file-input').addEventListener('change', function (event) {
+        const newFiles = Array.from(event.target.files);
+        attachedFiles = [...attachedFiles, ...newFiles];
+        updatePreviews();
+        this.value = ''; // Reset input
+
+        console.log("files", attachedFiles);
+        const submit = document.getElementById("submit__chat");
+        const chatInput = document.getElementById("chat__input")
+        const isDisable = changeSubmitButtonState(chatInput);
+        submit.disabled = isDisable;
+        submit.classList.toggle("hover:bg-[#075E54]", !isDisable);
+        submit.classList.toggle("cursor-pointer", !isDisable);
+    });
+
+    // Toggle dropdown when clicking the attachment button
+    document.getElementById('attachment-button').addEventListener('click', function (event) {
+        const dropdown = document.getElementById('attachment-dropdown');
+        dropdown.classList.toggle('hidden');
+        event.stopPropagation();
+    });
+
+    // Handle file button click
+    document.getElementById('file-button').addEventListener('click', function () {
+        document.getElementById('file-input').click();
+        document.getElementById('attachment-dropdown').classList.add('hidden');
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function (event) {
+        const container = document.getElementById('attachment-container');
+        const dropdown = document.getElementById('attachment-dropdown');
+
+        if (container && !container.contains(event.target)) {
+            dropdown.classList.add('hidden');
+        }
+    });
+
+    function changeSubmitButtonState(element) {
+        let disable = true;
+
+        if (attachedFiles.length > 0) {
+            disable = false;
+            console.log(`ada file: ${attachedFiles.length}, disable: ${disable}`);
+        }
+
+        if (disable && element.value.trim() != "") {
+            disable = false;
+            console.log(`ada text: ${element.value.trim()}, disable: ${disable}`);
+        }
+
+        return disable;
+    }
+
+    document.getElementById("chat__input").addEventListener("keyup", (event) => {
+        const submit = document.getElementById("submit__chat");
+        const isDisable = changeSubmitButtonState(event.target);
+
+        submit.disabled = isDisable;
+        submit.classList.toggle("hover:bg-[#075E54]", !isDisable);
+        submit.classList.toggle("cursor-pointer", !isDisable);
+
+        resizeTextarea();
+    });
+
+    document.getElementById('chat__input').addEventListener("keydown", (event) => {
+        const chatForm = document.getElementById("chat__container");
+        const receiverId = chatForm.getAttribute("data-receiver-id");
+
+        if (!hasTyped && event.key.length === 1) {
+            hasTyped = true;
+
+            webSocket.sendMessage({
+                type: "MARK_MSGS_AS_READ",
+                body: {
+                    senderId: receiverId,
+                },
+            })
+
+            const sender = document.getElementById(`unread__peer__chat__${receiverId}`);
+            if (sender) {
+                sender.className = "invisible";
+                sender.innerHTML = 0;
+            }
+        }
+
+        if (!event.shiftKey && event.key === "Enter") {
+            event.preventDefault();
+            console.log("peer chat submitted");
+
+            sendChat();
+        }
+
+        resizeTextarea();
+    });
+    resizeTextarea();
+
+    async function sendChat() {
+        const chatForm = document.getElementById("chat__container");
+        const receiverId = chatForm.getAttribute("data-receiver-id");
+        const receiverStatus = chatForm.getAttribute("data-receiver-status");
+        let chatInput = document.getElementById("chat__input");
+        if (attachedFiles.length == 0 && !chatInput.value.trim()) return; // Prevent empty messages
+
+        if (attachedFiles.length == 0) {
+            webSocket.sendMessage({
+                type: "PEER_CHAT",
+                body: {
+                    receiverId: receiverId,
+                    content: chatInput.value
+                },
+            });
+        } else {
+            const fd = new FormData();
+
+            fd.append("receiverId", receiverId);
+            if (chatInput.value) {
+                fd.append("content", chatInput.value);
+            }
+
+            for (let i = 0; i < attachedFiles.length; i++) {
+                const file = attachedFiles[i];
+                fd.append("files[]", file);
+            }
+
+            console.log("files", fd.getAll("files[]"));
+
+            const res = await fetch(`http://${window.location.host}/api/messages`, {
+                method: 'POST',
+                body: fd
+            });
+
+            if (!res.ok) {
+                alert("Sending chat failed");
+                return;
+            }
+
+            const json = await res.json();
+            console.log("chat json", json);
+        }
+
+        chatInput.value = '';
+        attachedFiles = [];
+        updatePreviews();
+        hasTyped = false;
+    }
+
+    function scrollToBottom() {
+        const chatContainer = document.getElementById("chat");
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    // Append message to the chat box
+    function appendPeerMessage(myUserId, body) {
+        const date = new Date(body.createdAt);
+        console.log("body message", body);
+        const chatContainer = document.getElementById("chat");
+        const formattedDate = date.toLocaleString('en-US', {
+            day: 'numeric',
+            month: 'numeric',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        }).replace('am', 'AM').replace('pm', 'PM');
+
+        const messageWrapper = document.createElement("div");
+        messageWrapper.className = "flex gap-4";
+
+        const messageAlign = document.createElement("div");
+        messageAlign.className = `flex flex-1 min-w-0 ${myUserId == body.senderId ? "justify-end" : "justify-start"}`;
+
+        const messageBubble = document.createElement("div");
+        messageBubble.className = "w-max text-white rounded-lg px-3 py-2 shadow-md relative max-w-3/4";
+
+        // Header with timestamp
+        const header = document.createElement("div");
+        header.className = "flex items-center gap-2 mb-1";
+        const timestamp = document.createElement("span");
+        timestamp.className = "text-xs text-gray-400";
+        timestamp.textContent = formattedDate;
+        header.appendChild(timestamp);
+        messageBubble.appendChild(header);
+
+        if (body.content) {
+            const contentDiv = document.createElement("div");
+            contentDiv.className = "whitespace-pre-wrap";
+            contentDiv.textContent = body.content;
+            messageBubble.appendChild(contentDiv);
+        }
+
+        if (body.files && body.files.length > 0) {
+            const fileContainer = document.createElement("div");
+            fileContainer.className = "mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2";
+
+            body.files.forEach(file => {
+                if (file.type.startsWith("image/")) {
+                    const imageWrapper = document.createElement("div");
+                    imageWrapper.className = "relative group/image aspect-video bg-discord-light rounded-md max-w-70 max-h-40";
+
+                    const image = document.createElement("img");
+                    image.src = `/api/messages/${file.messageId}/files/${file.id}`;
+                    image.alt = file.name;
+                    image.className = "w-70 h-45 object-contain";
+
+                    const overlay = document.createElement("div");
+                    overlay.className = "absolute inset-0 group-hover/image:bg-opacity-40 transition-all";
+
+                    const buttonWrapper = document.createElement("div");
+                    buttonWrapper.className = "absolute top-2 right-2 opacity-0 group-hover/image:opacity-100 transition-opacity flex gap-1";
+
+                    const deleteButton = document.createElement("button");
+                    deleteButton.className = "cursor-pointer p-1 bg-red-500 rounded hover:bg-red-600";
+                    deleteButton.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                         stroke-linejoin="round" class="text-white">
+                        <path d="M3 6h18"></path>
+                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                    </svg>`;
+
+                    buttonWrapper.appendChild(deleteButton);
+                    overlay.appendChild(buttonWrapper);
+                    imageWrapper.appendChild(image);
+                    imageWrapper.appendChild(overlay);
+                    fileContainer.appendChild(imageWrapper);
+                } else {
+                    const fileWrapper = document.createElement("div");
+                    fileWrapper.className = "relative group/file rounded-md p-3 flex items-center gap-3 max-w-70 max-h-40";
+
+                    const fileIcon = document.createElement("svg");
+                    fileIcon.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                         stroke-linejoin="round" class="text-gray-400">
+                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>`;
+
+                    const fileName = document.createElement("span");
+                    fileName.className = "text-gray-300 truncate";
+                    fileName.textContent = file.name;
+
+                    const buttonWrapper = document.createElement("div");
+                    buttonWrapper.className = "absolute top-2 right-2 opacity-0 group-hover/file:opacity-100 transition-opacity flex gap-1";
+
+                    const deleteButton = document.createElement("button");
+                    deleteButton.className = "cursor-pointer p-1 bg-red-500 rounded hover:bg-red-600";
+                    deleteButton.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                         stroke-linejoin="round" class="text-white">
+                        <path d="M3 6h18"></path>
+                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                    </svg>`;
+
+                    buttonWrapper.appendChild(deleteButton);
+                    fileWrapper.appendChild(fileIcon);
+                    fileWrapper.appendChild(fileName);
+                    fileWrapper.appendChild(buttonWrapper);
+                    fileContainer.appendChild(fileWrapper);
+                }
+            });
+
+            messageBubble.appendChild(fileContainer);
+        }
+
+        messageAlign.appendChild(messageBubble);
+        messageWrapper.appendChild(messageAlign);
+
+        // document.getElementById('chat').insertAdjacentHTML('beforeend', newMsg);
+        document.getElementById('chat').appendChild(messageWrapper);
         scrollToBottom();
-    </script>
+    }
+
+    async function deleteFile(receiver, file) {
+        const confirmation = confirm(`Delete file ${file.name}?`);
+
+        if (confirmation) {
+            const res = await fetch(`http://${window.location.host}/api/messages/${file.messageId}/files/${file.id}`, {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    receiverId: receiver.id,
+                })
+            });
+
+            if (!res.ok) {
+                alert("Deleting file failed");
+                return;
+            }
+        }
+    }
+
+    scrollToBottom();
+</script>
 }

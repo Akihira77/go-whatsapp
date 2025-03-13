@@ -46,11 +46,14 @@ var (
 )
 
 type WsMessageBody struct {
-	SenderID   string     `json:"senderId"`
-	ReceiverID *string    `json:"receiverId,omitempty"`
-	GroupID    *string    `json:"groupId,omitempty"`
-	Content    string     `json:"content"`
-	CreatedAt  *time.Time `json:"createdAt,omitempty"`
+	SenderID   string       `json:"senderId"`
+	ReceiverID *string      `json:"receiverId,omitempty"`
+	GroupID    *string      `json:"groupId,omitempty"`
+	MessageID  *string      `json:"messageId,omitempty"`
+	FileID     *string      `json:"fileId,omitempty"`
+	Content    *string      `json:"content,omitempty"`
+	Files      []types.File `json:"files,omitempty"`
+	CreatedAt  *time.Time   `json:"createdAt,omitempty"`
 }
 
 type WsMessage struct {
@@ -70,7 +73,7 @@ type Client struct {
 type Hub struct {
 	sync.RWMutex
 	clients    map[string]*Client
-	broadcast  chan *WsMessage
+	Broadcast  chan *WsMessage
 	register   chan *Client
 	unregister chan *Client
 	v          *utils.MyValidator
@@ -78,7 +81,7 @@ type Hub struct {
 
 func NewHub() *Hub {
 	return &Hub{
-		broadcast:  make(chan *WsMessage),
+		Broadcast:  make(chan *WsMessage),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		clients:    make(map[string]*Client),
@@ -117,7 +120,7 @@ func (h *Hub) Run() {
 
 				cleanupClient(client)
 			}
-		case msg := <-h.broadcast:
+		case msg := <-h.Broadcast:
 			b, err := json.Marshal(msg)
 			if err != nil {
 				slog.Error("Marshalling message error",
@@ -277,7 +280,7 @@ func (c *Client) readPump(userService *services.UserService, chatService *servic
 			slog.Info("Adding message PEER CHAT")
 
 			m, err := chatService.AddMessage(context.Background(), &types.CreateMessage{
-				Content:    data.Body.Content,
+				Content:    *data.Body.Content,
 				SenderID:   data.Body.SenderID,
 				ReceiverID: data.Body.ReceiverID,
 				GroupID:    nil,
@@ -295,7 +298,7 @@ func (c *Client) readPump(userService *services.UserService, chatService *servic
 			slog.Info("Adding message GROUP CHAT")
 
 			m, err := chatService.AddMessage(context.Background(), &types.CreateMessage{
-				Content:    data.Body.Content,
+				Content:    *data.Body.Content,
 				SenderID:   data.Body.SenderID,
 				ReceiverID: nil,
 				GroupID:    data.Body.GroupID,
@@ -333,7 +336,7 @@ func (c *Client) readPump(userService *services.UserService, chatService *servic
 			return
 		}
 
-		c.hub.broadcast <- &data
+		c.hub.Broadcast <- &data
 	}
 }
 

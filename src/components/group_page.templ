@@ -11,12 +11,13 @@ templ GroupPage(myUser *types.User, g *types.Group) {
 	<div id="group__page" class="relative">
 		<div id="main" class="relative">
 			<div class="bg-gray-200 p-4 flex items-center">
-				<div
-					id="group__info"
-					class="cursor-pointer flex flex-1 items-center gap-2"
-				>
+				<div id="group__info" class="cursor-pointer flex flex-1 items-center gap-2">
 					<div class="relative">
-						<img src={ fmt.Sprintf("/api/groups/images/%s", g.ID) } alt="Group Profile" class="w-12 h-12 rounded-full object-cover"/>
+						<img
+							src={ fmt.Sprintf("/api/groups/images/%s", g.ID) }
+							alt="Group Profile"
+							class="w-12 h-12 rounded-full object-cover"
+						/>
 					</div>
 					<div class="flex-1 ml-2">
 						<h2 class="font-semibold">{ (g.Name) }</h2>
@@ -51,9 +52,9 @@ templ GroupPage(myUser *types.User, g *types.Group) {
 							<li>
 								<button
 									class="cursor-pointer w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-									hx-delete={ fmt.Sprintf("/groups/%s", g.ID) }
 									hx-confirm={ fmt.Sprintf("Exit '%s' group?", g.Name) }
 								>
+									hx-delete={ fmt.Sprintf("/groups/%s", g.ID) }
 									Exit Group
 								</button>
 							</li>
@@ -62,38 +63,39 @@ templ GroupPage(myUser *types.User, g *types.Group) {
 				</div>
 			</div>
 			<!-- Chat Messages -->
-			<div
-				id="chat"
-				class="chat-bg flex-1 h-[80vh] bg-[#e5ddd5] overflow-y-auto p-4"
-			>
+			<div id="chat" class="chat-bg flex-1 h-[80vh] bg-[#e5ddd5] overflow-y-auto p-4">
 				<!-- Messages will go here -->
 				for _, msg := range g.Messages {
 					if msg.SenderID != myUser.ID {
-						<div
-							id="sender__message"
-							class="flex mb-4"
-						>
-							<img src={ fmt.Sprintf("/api/users/images/%s", msg.SenderID) } alt="Sender Profile" class="w-10 h-10 rounded-full object-cover mr-2"/>
+						<div id="sender__message" class="flex mb-4">
+							<img
+								src={ fmt.Sprintf("/api/users/images/%s", msg.SenderID) }
+								alt="Sender Profile"
+								class="w-10 h-10 rounded-full object-cover mr-2"
+							/>
 							<div class="flex flex-col flex-1">
 								<div class="text-xs text-[#00a884] mb-1">{ utils.GetFullName(msg.Sender) }</div>
 								<div class="w-max bg-[#1f2c34] text-white rounded-lg p-2 rounded-bl-none shadow-md relative">
 									<div class="whitespace-pre-wrap">{ msg.Content }</div>
 									<div class="flex justify-end">
-										<span class="text-[10px] text-white/75 ml-1.5 self-end">{ msg.CreatedAt.Format("2/1/2006 3:04 PM") }</span>
+										<span class="text-[10px] text-white/75 ml-1.5 self-end">
+											{ msg.CreatedAt.Format("2/1/2006 3:04 PM") }
+										</span>
 									</div>
 								</div>
 							</div>
 						</div>
 					} else {
-						<div
-							id="receiver__message"
-							class="flex mb-4"
-						>
+						<div id="receiver__message" class="flex mb-4">
 							<div class="flex flex-col flex-1">
-								<div class="w-max bg-[#025D4B] text-white rounded-lg px-3 py-2 rounded-br-none shadow-md relative self-end">
+								<div
+									class="w-max bg-[#025D4B] text-white rounded-lg px-3 py-2 rounded-br-none shadow-md relative self-end"
+								>
 									<div class="whitespace-pre-wrap">{ msg.Content }</div>
 									<div class="flex justify-end">
-										<span class="text-[10px] text-white/75 ml-1.5 self-end">{ msg.CreatedAt.Format("2/1/2006 3:04 PM") }</span>
+										<span class="text-[10px] text-white/75 ml-1.5 self-end">
+											{ msg.CreatedAt.Format("2/1/2006 3:04 PM") }
+										</span>
 									</div>
 								</div>
 							</div>
@@ -102,16 +104,8 @@ templ GroupPage(myUser *types.User, g *types.Group) {
 				}
 			</div>
 			<!-- Message Input -->
-			<div
-				id="chat__container"
-				class="bg-gray-200 p-4 flex items-center"
-				data-group-id={ g.ID }
-			>
-				<div
-					id="chat__form"
-					data-for="chatInput"
-					class="flex w-full items-center"
-				>
+			<div id="chat__container" class="bg-gray-200 p-4 flex items-center" data-group-id={ g.ID }>
+				<div id="chat__form" data-for="chatInput" class="flex w-full items-center">
 					<i class="fas fa-smile text-gray-600 mr-4"></i>
 					<i class="fas fa-paperclip text-gray-600 mr-4"></i>
 					<textarea
@@ -129,10 +123,7 @@ templ GroupPage(myUser *types.User, g *types.Group) {
 				</div>
 			</div>
 		</div>
-		<div
-			id="right__sidebar"
-			class="hidden"
-		>
+		<div id="right__sidebar" class="hidden">
 			@GroupInfo(g)
 		</div>
 		<script>
@@ -161,7 +152,7 @@ templ GroupPage(myUser *types.User, g *types.Group) {
             return;
         }
 
-        document.body.addEventListener('htmx:configRequest', function(event) {
+        document.body.addEventListener('htmx:configRequest', function (event) {
             if (event.target.id === 'chat__container') {
                 event.preventDefault();  // This stops htmx from sending the request
             }
@@ -228,8 +219,8 @@ templ GroupPage(myUser *types.User, g *types.Group) {
         }
 
         // Append message to the chat box
-        function appendGroupMessage(myUserId, senderId, content, createdAt) {
-            const date = new Date(createdAt);
+        function appendGroupMessage(myUserId, body) {
+            const date = new Date(body.createdAt);
             const chatContainer = document.getElementById("chat");
             const formattedDate = date.toLocaleString('en-US', {
                 day: 'numeric',
@@ -242,14 +233,14 @@ templ GroupPage(myUser *types.User, g *types.Group) {
 
             const newMsg = `
 				<div
-					id="${myUserId === senderId? "me" : "not-me"}"
+					id="${myUserId === body.senderId ? "me" : "not-me"}"
 					class="flex mb-4"
 				>
 					<div class="flex flex-col flex-1">
-						<div class="w-max ${myUserId === senderId? "bg-[#025D4B] self-end" : "bg-[#1f2c34] self-start"} text-white rounded-lg px-3 py-2 rounded-br-none shadow-md relative"]>
-							<div class="whitespace-pre-wrap">${ content }</div>
+						<div class="w-max ${myUserId === body.senderId ? "bg-[#025D4B] self-end" : "bg-[#1f2c34] self-start"} text-white rounded-lg px-3 py-2 rounded-br-none shadow-md relative"]>
+							<div class="whitespace-pre-wrap">${body.content}</div>
 							<div class="flex justify-end">
-								<span class="text-[10px] text-white/75 ml-1.5 self-end">${ formattedDate }</span>
+								<span class="text-[10px] text-white/75 ml-1.5 self-end">${formattedDate}</span>
 							</div>
 						</div>
 					</div>

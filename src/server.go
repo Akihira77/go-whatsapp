@@ -50,15 +50,15 @@ func mainRouter(router *gin.Engine, store *store.Store) {
 	chatRepository := repositories.NewChatRepository(store)
 	chatService := services.NewChatService(chatRepository)
 
-	pageRouter(router, authenticatedPage, userService, chatService)
-	userRouter(api, authenticatedApi, userService, chatService)
-	chatRouter(authenticatedApi, chatService)
-
 	hub := handlers.NewHub()
 	go hub.Run()
 	authenticatedApi.GET("/ws", func(c *gin.Context) {
 		handlers.ServeWs(c, hub, userService, chatService)
 	})
+
+	pageRouter(router, authenticatedPage, userService, chatService)
+	userRouter(api, authenticatedApi, userService, chatService)
+	chatRouter(authenticatedApi, chatService, hub)
 }
 
 func pageRouter(router *gin.Engine, authenticatedPage *gin.RouterGroup, userService *services.UserService, chatService *services.ChatService) {
@@ -100,10 +100,12 @@ func userRouter(api *gin.RouterGroup, authenticatedApi *gin.RouterGroup, userSer
 	authenticatedApi.PATCH("/groups/:groupId", userHandler.EditGroup)
 }
 
-func chatRouter(authenticatedApi *gin.RouterGroup, chatService *services.ChatService) {
-	chatHandler := handlers.NewChatHandler(chatService)
+func chatRouter(authenticatedApi *gin.RouterGroup, chatService *services.ChatService, hub *handlers.Hub) {
+	chatHandler := handlers.NewChatHandler(chatService, hub)
 
 	authenticatedApi.GET("/messages", chatHandler.GetChatList)
+	authenticatedApi.GET("/messages/:messageId/files/:fileId", chatHandler.FindFileInsideChat)
 	authenticatedApi.GET("/messages/last/:username", chatHandler.SearchLastMessage)
-	// authenticatedApi.POST("/messages", chatHandler.SendMsgToOffUser)
+	authenticatedApi.POST("/messages", chatHandler.SendMsg)
+	authenticatedApi.DELETE("/messages/:messageId/files/:fileId", chatHandler.DeleteFileInsideChat)
 }

@@ -2,12 +2,15 @@ package services
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log/slog"
 	"time"
 
 	"github.com/Akihira77/go_whatsapp/src/repositories"
 	"github.com/Akihira77/go_whatsapp/src/types"
 	"github.com/oklog/ulid/v2"
+	"gorm.io/gorm"
 )
 
 type ChatService struct {
@@ -59,8 +62,8 @@ func (cs *ChatService) SearchChat(ctx context.Context, myUserId, userName, group
 	return chatHistories, err
 }
 
-func (cs *ChatService) AddMessage(ctx context.Context, data *types.CreateMessage) (types.Message, error) {
-	msg := types.Message{
+func (cs *ChatService) AddMessage(ctx context.Context, data *types.CreateMessage) (*types.Message, error) {
+	newMsg := types.Message{
 		ID:         ulid.Make().String(),
 		Content:    data.Content,
 		SenderID:   data.SenderID,
@@ -72,18 +75,27 @@ func (cs *ChatService) AddMessage(ctx context.Context, data *types.CreateMessage
 		CreatedAt:  time.Now(),
 	}
 
-	err := cs.
+	msg, err := cs.
 		chatRepository.
-		AddMessage(ctx, msg)
+		AddMessage(ctx, newMsg, data.Files)
 	if err != nil {
 		slog.Error("Add message",
 			"error", err,
 		)
 
-		return types.Message{}, err
+		return &types.Message{}, fmt.Errorf("Sending chat failed")
 	}
 
-	return msg, err
+	for i := range msg.Files {
+		msg.Files[i] = types.File{
+			ID:        msg.Files[i].ID,
+			MessageID: msg.ID,
+			Name:      msg.Files[i].Name,
+			Type:      msg.Files[i].Type,
+		}
+	}
+
+	return msg, nil
 }
 
 func (cs *ChatService) EditMessage(ctx context.Context, data *types.Message) (types.Message, error) {
@@ -137,4 +149,43 @@ func (cs *ChatService) MarkMessagesAsRead(ctx context.Context, senderId string, 
 	}
 
 	return cs.GetMessages(ctx, senderId, *receiverId)
+}
+
+func (cs *ChatService) FindFileInsideChat(ctx context.Context, messageId, fileId string) (*types.File, error) {
+	f, err := cs.chatRepository.FindFileInsideChat(ctx, messageId, fileId)
+	if err != nil {
+		slog.Error("Failed retrieving file",
+			"messageId", messageId,
+			"fileId", fileId,
+			"err", err,
+		)
+
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("File you are searching is not found")
+		}
+
+		return nil, fmt.Errorf("Error while searching file")
+	}
+
+	return f, nil
+}
+
+func (cs *ChatService) DeleteFile(ctx context.Context, messageId, fileId string) error {
+	_, err := cs.FindFileInsideChat(ctx, messageId, fileId)
+	if err != nil {
+		return err
+	}
+
+	err = cs.chatRepository.DeleteFile(ctx, messageId, fileId)
+	if err != nil {
+		slog.Error("Deleting file",
+			"msgId", messageId,
+			"fileId", fileId,
+			"err", err,
+		)
+
+		return err
+	}
+
+	return nil
 }
