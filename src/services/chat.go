@@ -15,11 +15,13 @@ import (
 
 type ChatService struct {
 	chatRepository *repositories.ChatRepository
+	userRepository *repositories.UserRepository
 }
 
-func NewChatService(chatRepository *repositories.ChatRepository) *ChatService {
+func NewChatService(chatRepository *repositories.ChatRepository, userRepository *repositories.UserRepository) *ChatService {
 	return &ChatService{
 		chatRepository: chatRepository,
+		userRepository: userRepository,
 	}
 }
 
@@ -63,6 +65,15 @@ func (cs *ChatService) SearchChat(ctx context.Context, myUserId, userName, group
 }
 
 func (cs *ChatService) AddMessage(ctx context.Context, data *types.CreateMessage) (*types.Message, error) {
+	sender, err := cs.userRepository.FindByID(ctx, data.SenderID)
+	if err != nil {
+		slog.Error("Finding sender information is failed",
+			"senderId", data.SenderID,
+			"err", err,
+		)
+		return nil, fmt.Errorf("Sender is not found")
+	}
+
 	newMsg := types.Message{
 		ID:         ulid.Make().String(),
 		Content:    data.Content,
@@ -95,6 +106,7 @@ func (cs *ChatService) AddMessage(ctx context.Context, data *types.CreateMessage
 		}
 	}
 
+	msg.Sender = sender
 	return msg, nil
 }
 

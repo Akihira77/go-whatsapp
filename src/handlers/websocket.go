@@ -47,6 +47,7 @@ var (
 
 type WsMessageBody struct {
 	SenderID   string       `json:"senderId"`
+	SenderName string       `json:"senderName"`
 	ReceiverID *string      `json:"receiverId,omitempty"`
 	GroupID    *string      `json:"groupId,omitempty"`
 	MessageID  *string      `json:"messageId,omitempty"`
@@ -292,6 +293,7 @@ func (c *Client) readPump(userService *services.UserService, chatService *servic
 				return
 			}
 
+			data.Body.SenderName = utils.GetFullName(m.Sender)
 			data.Body.CreatedAt = &m.CreatedAt
 		case GROUP_CHAT:
 			data.Body.SenderID = c.UserID
@@ -311,6 +313,7 @@ func (c *Client) readPump(userService *services.UserService, chatService *servic
 			}
 
 			data.Body.CreatedAt = &m.CreatedAt
+			data.Body.SenderName = utils.GetFullName(m.Sender)
 		case EXIT_GROUP:
 			data.Body.SenderID = c.UserID
 			slog.Info("Exiting GROUP CHAT",
