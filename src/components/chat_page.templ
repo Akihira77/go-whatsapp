@@ -397,9 +397,6 @@ templ ChatPage(receiver *types.User, msgs []types.Message) {
         textarea.style.height = Math.max(textarea.scrollHeight, 40) + 'px';
     }
 
-    // Store files array
-    let attachedFiles = [];
-
     // File preview template function
     function createFilePreview(file, index) {
         const isImage = file.type.startsWith('image/');
@@ -588,7 +585,6 @@ templ ChatPage(receiver *types.User, msgs []types.Message) {
     async function sendChat() {
         const chatForm = document.getElementById("chat__container");
         const receiverId = chatForm.getAttribute("data-receiver-id");
-        const receiverStatus = chatForm.getAttribute("data-receiver-status");
         let chatInput = document.getElementById("chat__input");
         if (attachedFiles.length == 0 && !chatInput.value.trim()) return; // Prevent empty messages
 
@@ -663,9 +659,17 @@ templ ChatPage(receiver *types.User, msgs []types.Message) {
         const messageBubble = document.createElement("div");
         messageBubble.className = "w-max text-white rounded-lg px-3 py-2 shadow-md relative max-w-3/4";
 
-        // Header with timestamp
         const header = document.createElement("div");
-        header.className = "flex items-center gap-2 mb-1";
+        if (body.senderId == myUserId) {
+            header.className = "flex items-center flex-row-reverse gap-2 mb-1";
+        } else {
+            header.className = "flex items-center gap-2 mb-1";
+        }
+        const imgProfile = document.createElement("img");
+        imgProfile.className = "w-8 h-8 rounded-full";
+        imgProfile.alt = "Sender Profile";
+        imgProfile.src = `/api/users/images/${body.senderId}`;
+        header.appendChild(imgProfile);
         const timestamp = document.createElement("span");
         timestamp.className = "text-xs text-gray-400";
         timestamp.textContent = formattedDate;

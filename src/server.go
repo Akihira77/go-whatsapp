@@ -48,7 +48,7 @@ func mainRouter(router *gin.Engine, store *store.Store) {
 	})
 
 	chatRepository := repositories.NewChatRepository(store)
-	chatService := services.NewChatService(chatRepository)
+	chatService := services.NewChatService(chatRepository, userRepository)
 
 	hub := handlers.NewHub()
 	go hub.Run()

@@ -9,6 +9,7 @@ import (
 	"github.com/Akihira77/go_whatsapp/src/components"
 	"github.com/Akihira77/go_whatsapp/src/services"
 	"github.com/Akihira77/go_whatsapp/src/types"
+	"github.com/Akihira77/go_whatsapp/src/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -132,6 +133,7 @@ func (ch *ChatHandler) SendMsg(c *gin.Context) {
 		wsMsg := &WsMessage{
 			Body: &WsMessageBody{
 				SenderID:   msg.SenderID,
+				SenderName: utils.GetFullName(msg.Sender),
 				ReceiverID: msg.ReceiverID,
 				GroupID:    msg.GroupID,
 				Content:    &msg.Content,
