@@ -97,9 +97,9 @@ func (cr *ChatRepository) SearchChat(ctx context.Context, myUserId, groupName, u
                 groups.id AS group_id,
                 groups.name AS group_name,
                 groups.group_profile,
-                COUNT(CASE WHEN messages.is_read = 0 AND messages.group_id = groups.id AND messages.receiver_id IS NULL THEN 1 END) AS unread_group_chat,
+                COUNT(CASE WHEN messages.is_read = 0 AND messages.group_id = groups.id AND messages.sender_id <> ? AND messages.receiver_id IS NULL THEN 1 END) AS unread_group_chat,
                 messages.content,
-                messages.created_at AS created_at
+                MAX(messages.created_at) AS created_at
             FROM messages
             LEFT JOIN users ON users.id = messages.sender_id
             LEFT JOIN groups ON groups.id = messages.group_id
@@ -121,7 +121,7 @@ func (cr *ChatRepository) SearchChat(ctx context.Context, myUserId, groupName, u
                 groups.group_profile,
                 0 AS unread_group_chat,
                 NULL,
-                groups.created_at AS created_at
+                MAX(groups.created_at) AS created_at
             FROM groups
             LEFT JOIN user_groups ON user_groups.group_id = groups.id
             LEFT JOIN users ON users.id = user_groups.user_id
@@ -135,6 +135,7 @@ func (cr *ChatRepository) SearchChat(ctx context.Context, myUserId, groupName, u
                 GROUP BY sender_id, group_id
                 ORDER BY created_at DESC
         `,
+			myUserId,
 			userName,
 			groupName,
 			myUserId,

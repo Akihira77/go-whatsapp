@@ -3,10 +3,7 @@ package components
 import "github.com/Akihira77/go_whatsapp/src/types"
 
 templ UsersSidebar(myInfo *types.User, users []types.User, q *types.UserQuerySearch) {
-	<div
-		id="main__sidebar"
-		class="w-1/4 bg-white border-r border-gray-300 flex flex-col"
-	>
+	<div id="main__sidebar" class="w-1/4 bg-white border-r border-gray-300 flex flex-col">
 		@ProfileSection(myInfo)
 		<div class="p-3">
 			<div class="relative">
@@ -26,11 +23,170 @@ templ UsersSidebar(myInfo *types.User, users []types.User, q *types.UserQuerySea
 				<i class="fas fa-search absolute right-3 top-2 text-gray-500"></i>
 			</div>
 		</div>
-		<div
-			id="user__list"
-			class="overflow-y-auto h-[calc(100vh-120px)]"
-		>
+		<div id="user__list" class="overflow-y-auto h-[calc(100vh-120px)]">
 			@UserList(users, q, false)
 		</div>
 	</div>
+	<script>
+    function renderChatPage(element) {
+        const userId = element.getAttribute("data-user-id");
+        const groupId = element.getAttribute("data-group-id");
+
+        if (userId && userId !== "" && userId !== lastActiveChatId) {
+            lastActiveChatId = userId;
+            htmx.ajax("GET", `/chat?userId=${userId}`, {target: "#main__content", swap: "innerHTML"});
+        } else if (groupId && groupId !== "" && groupId !== lastActiveChatId) {
+            lastActiveChatId = groupId;
+            htmx.ajax("GET", `/chat?groupId=${groupId}`, {target: "#main__content", swap: "innerHTML"});
+        }
+    }
+
+    function moveItem(idItem, to = 0) {
+        console.log("moving new received chat to top chatlist = ", idItem);
+        const item = document.querySelector(`li#${idItem}`);
+        console.log("the chat item = ", item);
+        if (!item) return;
+
+        const ul = document.querySelector('ul#chat__list');
+
+        ul.removeChild(item);
+        ul.insertBefore(item, ul.children[to]);
+    }
+
+    webSocket.onMessage((data) => {
+        const myUserId = getCookieByName("userId");
+        if (data.type === "PEER_CHAT") {
+            const body = data.body;
+            if (body.messageId) {
+                if (body.fileId) {
+                    document.getElementById(body.fileId).remove();
+
+                    if (body.senderId === myUserId) {
+                        alert("Deleting file success");
+                    }
+                    return;
+                }
+
+                document.getElementById(body.messageId).remove();
+
+                if (body.senderId === myUserId) {
+                    alert("Deleting message success");
+                }
+
+                return;
+            }
+
+            moveItem(`user__chat__${body.senderId}`, 0);
+            if (document.getElementById("chat")) {
+                appendPeerMessage(myUserId, body);
+            }
+
+            if (body.senderId !== myUserId) {
+                const sender = document.getElementById(`unread__peer__chat__${body.senderId}`);
+                if (sender) {
+                    sender.innerHTML = parseInt(sender.innerHTML) + 1;
+                    sender.className = "absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full";
+                } else {
+                    const htmlTempl =
+                        `
+                        <li
+                            id="user__chat__${body.senderId}"
+                            data-user-id=${body.senderId}
+                            class="chat__user flex items-center p-3 bg-slate-100 hover:bg-slate-300 cursor-pointer relative"
+                            onclick="renderChatPage(this)"
+                        >
+                        <div class="relative">
+                        <img src="/api/users/images/${body.senderId}" alt="Contact" class="w-12 h-12 rounded-full"/>
+                        <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                    </div>
+                        <div class="flex-1 ml-3">
+                        <h3 class="text-sm font-semibold">${body.senderName}</h3>
+                        </div>
+                        <div
+                        id="unread__peer__chat__${body.senderId}"
+                        class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full"
+                    >
+                    1
+                    </div>
+                        </li>
+                        `
+
+                    const ul = document.querySelector("ul#chat__list");
+                    ul.insertAdjacentHTML("afterbegin", htmlTempl);
+                    console.log("inserting new peer chat", ul);
+                }
+            }
+        } else if (data.type === "GROUP_CHAT") {
+            if (body.messageId) {
+                if (body.fileId) {
+                    document.getElementById(body.fileId).remove();
+
+                    if (body.senderId === myUserId) {
+                        alert("Deleting file success");
+                    }
+                    return;
+                }
+
+                document.getElementById(body.messageId).remove();
+
+                if (body.senderId === myUserId) {
+                    alert("Deleting message success");
+                }
+
+                return;
+            }
+
+            moveItem(`group__chat__${body.senderId}`, 0);
+            if (document.getElementById("chat")) {
+                appendGroupMessage(myUserId, data.body);
+            }
+
+            if (data.body.senderId !== myUserId) {
+                const group = document.getElementById(`unread__group__chat__${data.body.senderId}`);
+                if (group) {
+                    group.innerHTML = parseInt(group.innerHTML) + 1;
+                    group.className = "absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full";
+                } else {
+                    const htmlTempl =
+                        `
+                        <li
+                            id="group__chat__${body.senderId}"
+                            data-group-id=${body.groupId}
+                            class="chat__user flex items-center p-3 bg-slate-100 hover:bg-slate-300 cursor-pointer relative"
+                            onclick="renderChatPage(this)"
+                        >
+                        <div class="relative">
+                        <img
+                            src="/api/groups/images/${body.groupId}"
+                            alt="Group Profile"
+                            class="w-12 h-12 rounded-full"
+                        />
+                        </div>
+                        <div class="flex-1 ml-3">
+                        <h3 class="text-sm font-semibold">${body.groupName}</h3>
+                        </div>
+                        <div
+                        id="unread__group__chat__${body.groupId}"
+                        class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full"
+                    >
+                    1
+                    </div>
+                        </li>
+                        `
+
+                    const ul = document.querySelector("ul#chat__list");
+                    ul.insertAdjacentHTML("afterbegin", htmlTempl);
+                }
+            }
+        } else if (data.type === "EXIT_GROUP") {
+            if (data.body.senderId === myUserId) {
+                const group = document.getElementById(`group__chat__${data.body.groupId}`);
+                if (group) {
+                    group.remove();
+                }
+            }
+        }
+    });
+
+</script>
 }

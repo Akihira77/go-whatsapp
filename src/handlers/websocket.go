@@ -50,6 +50,7 @@ type WsMessageBody struct {
 	SenderName string       `json:"senderName"`
 	ReceiverID *string      `json:"receiverId,omitempty"`
 	GroupID    *string      `json:"groupId,omitempty"`
+	GroupName  string       `json:"groupName"`
 	MessageID  *string      `json:"messageId,omitempty"`
 	FileID     *string      `json:"fileId,omitempty"`
 	Content    *string      `json:"content,omitempty"`

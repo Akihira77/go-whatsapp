@@ -110,7 +110,7 @@ func (ph *PageHandler) RenderChatPage(c *gin.Context) {
 			return
 		}
 
-		components.ChatPage(u, msgs).Render(c, c.Writer)
+		components.ChatPage(user, u, msgs).Render(c, c.Writer)
 	} else {
 		groupId := c.Query("groupId")
 		g, err := ph.userService.FindGroupByID(c, groupId)

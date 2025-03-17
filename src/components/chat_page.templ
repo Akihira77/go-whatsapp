@@ -32,26 +32,26 @@ templ imagePreviewModal() {
 	</div>
 }
 
-templ imgLayout(receiver *types.User, file types.File) {
-	<div
-		id={ file.ID }
-		class="relative group/image aspect-video overflow-hidden rounded-md cursor-pointer w-70 h-40 group"
-		onClick={ previewImage(fmt.Sprintf("/api/messages/%s/files/%s", file.MessageID, file.ID)) }
-	>
+templ imgLayout(msg types.Message, myUser *types.User, file types.File) {
+	<div id={ file.ID } class="relative group/image aspect-video overflow-hidden rounded-md cursor-pointer w-70 h-40 group">
 		<img
 			src={ fmt.Sprintf("/api/messages/%s/files/%s", file.MessageID, file.ID) }
 			alt={ file.Name }
 			class="w-70 h-40 object-cover rounded-md"
+			onClick={ previewImage(fmt.Sprintf("/api/messages/%s/files/%s",
+        file.MessageID, file.ID)) }
 		/>
 		<!-- Delete Button -->
-		@deleteFileButton(receiver, file)
+		if msg.SenderID == myUser.ID {
+			@deleteFileButton(msg.ReceiverID, msg.GroupID, file)
+		}
 	</div>
 }
 
-templ deleteFileButton(receiver *types.User, file types.File) {
+templ deleteFileButton(receiverID *string, groupID *string, file types.File) {
 	<div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
 		<button
-			onClick={ templ.JSFuncCall("deleteFile", receiver, file) }
+			onClick={ templ.JSFuncCall("deleteFile", receiverID, groupID, file) }
 			class="cursor-pointer p-1 bg-red-500 hover:bg-red-600 rounded text-white"
 		>
 			<svg
@@ -73,7 +73,7 @@ templ deleteFileButton(receiver *types.User, file types.File) {
 	</div>
 }
 
-templ ChatPage(receiver *types.User, msgs []types.Message) {
+templ ChatPage(myUser *types.User, receiver *types.User, msgs []types.Message) {
 	<!-- Chat Header -->
 	<div class="bg-gray-200 p-4 flex items-center">
 		<div class="relative">
@@ -175,7 +175,7 @@ templ ChatPage(receiver *types.User, msgs []types.Message) {
 							<div class="mt-2 grid grid-cols-2 gap-2 relative">
 								for _, file := range msg.Files {
 									if strings.HasPrefix(file.Type, "image/") {
-										@imgLayout(receiver, file)
+										@imgLayout(msg, myUser, file)
 									} else {
 										<!-- Tentukan ikon berdasarkan jenis file -->
 										<div
@@ -240,7 +240,9 @@ templ ChatPage(receiver *types.User, msgs []types.Message) {
 											}
 											<span dir="ltr" class="text-gray-300 truncate max-w-[220px]">{ file.Name }</span>
 											<!-- Delete Button -->
-											@deleteFileButton(receiver, file)
+											if msg.SenderID != receiver.ID {
+												@deleteFileButton(msg.ReceiverID, msg.GroupID, file)
+											}
 										</div>
 									}
 								}
@@ -550,11 +552,15 @@ templ ChatPage(receiver *types.User, msgs []types.Message) {
         resizeTextarea();
     });
 
+    document.getElementById('chat__input').addEventListener("focusout", (event) => {
+        hasTyped = false;
+    });
+
     document.getElementById('chat__input').addEventListener("keydown", (event) => {
         const chatForm = document.getElementById("chat__container");
         const receiverId = chatForm.getAttribute("data-receiver-id");
 
-        if (!hasTyped && event.key.length === 1) {
+        if (!hasTyped) {
             hasTyped = true;
 
             webSocket.sendMessage({
@@ -691,6 +697,7 @@ templ ChatPage(receiver *types.User, msgs []types.Message) {
                 if (file.type.startsWith("image/")) {
                     const imageWrapper = document.createElement("div");
                     imageWrapper.className = "relative group/image aspect-video bg-discord-light rounded-md max-w-70 max-h-40";
+                    imageWrapper.id = file.id;
 
                     const image = document.createElement("img");
                     image.src = `/api/messages/${file.messageId}/files/${file.id}`;
@@ -703,18 +710,21 @@ templ ChatPage(receiver *types.User, msgs []types.Message) {
                     const buttonWrapper = document.createElement("div");
                     buttonWrapper.className = "absolute top-2 right-2 opacity-0 group-hover/image:opacity-100 transition-opacity flex gap-1";
 
-                    const deleteButton = document.createElement("button");
-                    deleteButton.className = "cursor-pointer p-1 bg-red-500 rounded hover:bg-red-600";
-                    deleteButton.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                         stroke-linejoin="round" class="text-white">
+                    if (body.senderId == myUserId) {
+                        const deleteButton = document.createElement("button");
+                        deleteButton.className = "cursor-pointer p-1 bg-red-500 rounded hover:bg-red-600";
+                        deleteButton.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round" class="text-white">
                         <path d="M3 6h18"></path>
                         <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
                         <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                    </svg>`;
+                        </svg>`;
 
-                    buttonWrapper.appendChild(deleteButton);
+                        buttonWrapper.appendChild(deleteButton);
+                    }
+
                     overlay.appendChild(buttonWrapper);
                     imageWrapper.appendChild(image);
                     imageWrapper.appendChild(overlay);
@@ -722,6 +732,7 @@ templ ChatPage(receiver *types.User, msgs []types.Message) {
                 } else {
                     const fileWrapper = document.createElement("div");
                     fileWrapper.className = "relative group/file rounded-md p-3 flex items-center gap-3 max-w-70 max-h-40";
+                    fileWrapper.id = file.id;
 
                     const fileIcon = document.createElement("svg");
                     fileIcon.innerHTML = `
@@ -769,7 +780,7 @@ templ ChatPage(receiver *types.User, msgs []types.Message) {
         scrollToBottom();
     }
 
-    async function deleteFile(receiver, file) {
+    async function deleteFile(receiverId, groupId, file) {
         const confirmation = confirm(`Delete file ${file.name}?`);
 
         if (confirmation) {
@@ -779,7 +790,8 @@ templ ChatPage(receiver *types.User, msgs []types.Message) {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    receiverId: receiver.id,
+                    receiverId: receiverId,
+                    groupId: groupId
                 })
             });
 
