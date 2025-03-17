@@ -3,126 +3,308 @@ package components
 import (
 	"fmt"
 	"github.com/Akihira77/go_whatsapp/src/types"
+	"github.com/Akihira77/go_whatsapp/src/utils"
+	"strings"
 )
 
 templ GroupPage(myUser *types.User, g *types.Group) {
 	<!-- Chat Header -->
-	<div id="group__page" class="relative">
-		<div id="main__content" class="relative">
-			<div class="bg-gray-200 p-4 flex items-center">
-				<div
-					id="group__info"
-					class="cursor-pointer flex flex-1 items-center gap-2"
-				>
-					<div class="relative">
-						<img src={ fmt.Sprintf("/api/groups/images/%s", g.ID) } alt="Group Profile" class="w-12 h-12 rounded-full object-cover"/>
-					</div>
-					<div class="flex-1 ml-2">
-						<h2 class="font-semibold">{ (g.Name) }</h2>
+	<div id="group__page" class="relative flex flex-1 flex-col">
+		<div class="bg-gray-200 p-4 flex items-center">
+			<div id="group__info" class="cursor-pointer flex flex-1 items-center gap-2">
+				<div class="relative">
+					<img
+						src={ fmt.Sprintf("/api/groups/images/%s", g.ID) }
+						alt="Group Profile"
+						class="w-12 h-12 rounded-full object-cover"
+					/>
+				</div>
+				<div class="flex-1 ml-2">
+					<h2 class="font-semibold">{ (g.Name) }</h2>
+				</div>
+			</div>
+			<div class="flex space-x-4 mr-4">
+				<div>
+					<i class="fas fa-search text-gray-600"></i>
+				</div>
+				<div class="relative">
+					<button id="chat__toggle" class="cursor-pointer focus:outline-none">
+						<i class="fas fa-ellipsis-v text-gray-600"></i>
+					</button>
+					<ul id="chat__menu" class="absolute z-100 right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden">
+						<li>
+							<button
+								class="cursor-pointer w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+								onclick="handleGroupInfo('open')"
+							>
+								Group Info
+							</button>
+						</li>
+						<li>
+							<button
+								class="cursor-pointer w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+								hx-delete={ fmt.Sprintf("/chat/clear?group=%s", g.ID) }
+								hx-confirm="Clear this chat?"
+							>
+								Clear Chat
+							</button>
+						</li>
+						<li>
+							<button
+								class="cursor-pointer w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+								hx-confirm={ fmt.Sprintf("Exit '%s' group?", g.Name) }
+							>
+								hx-delete={ fmt.Sprintf("/groups/%s", g.ID) }
+								Exit Group
+							</button>
+						</li>
+					</ul>
+				</div>
+			</div>
+		</div>
+		<!-- Chat Messages -->
+		<div id="chat" class="chat-bg flex-1 bg-[#e5ddd5] overflow-y-auto p-4 max-h-[80vh]">
+			<!-- Messages will go here -->
+			for _, msg := range g.Messages {
+				<div id={ msg.ID } class="flex gap-4 border-y-2 border-slate-200">
+					<div
+						if msg.SenderID==myUser.ID {
+							class="flex flex-1 justify-end min-w-0"
+						} else {
+							class="flex flex-1 justify-start min-w-0"
+						}
+					>
+						<div class="w-max text-white rounded-lg px-3 py-2 shadow-md relative max-w-3/4">
+							<!-- Header -->
+							<div
+								if msg.SenderID==myUser.ID {
+									class="flex items-center flex-row-reverse gap-2 mb-1"
+								} else {
+									class="flex items-center gap-2 mb-1"
+								}
+							>
+								<img
+									src={ fmt.Sprintf("/api/users/images/%s", msg.SenderID) }
+									alt="Sender Profile"
+									class="w-8 h-8 rounded-full"
+								/>
+								<div class="text-xs text-[#00a884] mb-1">{ utils.GetFullName(msg.Sender) }</div>
+								<span class="text-xs text-gray-400">
+									{ msg.CreatedAt.Format("2/1/2006 3:04 PM") }
+								</span>
+							</div>
+							<!-- Message content -->
+							if msg.Content != "" {
+								<div class="whitespace-pre-wrap">
+									{ msg.Content }
+								</div>
+							}
+							if len(msg.Files) > 0 {
+								<div class="mt-2 grid grid-cols-2 gap-2 relative">
+									for _, file := range msg.Files {
+										if strings.HasPrefix(file.Type, "image/") {
+											@imgLayout(msg, myUser, file)
+										} else {
+											<!-- Tentukan ikon berdasarkan jenis file -->
+											<div
+												id={ file.ID }
+												if msg.SenderID==myUser.ID {
+													dir="rtl"
+													class="relative group/file rounded-md p-3 flex flex-col items-center justify-center gap-3 bg-gray-800 text-white w-70 h-40 group"
+												} else {
+													dir="ltr"
+													class="relative group/file rounded-md p-3 flex flex-col items-center justify-center gap-3 bg-gray-800 text-white w-70 h-40 group"
+												}
+											>
+												if strings.HasPrefix(file.Type, "video/") {
+													<svg
+														class="w-8 h-8 text-gray-300"
+														fill="none"
+														stroke="currentColor"
+														stroke-width="2"
+														stroke-linecap="round"
+														stroke-linejoin="round"
+													>
+														<path d="M23 7l-7 5 7 5V7z"></path>
+														<rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+													</svg>
+												} else if strings.HasPrefix(file.Type, "audio/") {
+													<svg
+														class="w-8 h-8 text-gray-300"
+														fill="none"
+														stroke="currentColor"
+														stroke-width="2"
+														stroke-linecap="round"
+														stroke-linejoin="round"
+													>
+														<path d="M9 18V5l12-2v13"></path>
+														<circle cx="6" cy="18" r="3"></circle>
+														<circle cx="18" cy="16" r="3"></circle>
+													</svg>
+												} else if strings.HasSuffix(file.Name, ".pdf") {
+													<svg
+														class="w-8 h-8 text-red-400"
+														fill="none"
+														stroke="currentColor"
+														stroke-width="2"
+														stroke-linecap="round"
+														stroke-linejoin="round"
+													>
+														<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+														<polyline points="14 2 14 8 20 8"></polyline>
+													</svg>
+												} else {
+													<svg
+														class="w-8 h-8 text-gray-400"
+														fill="none"
+														stroke="currentColor"
+														stroke-width="2"
+														stroke-linecap="round"
+														stroke-linejoin="round"
+													>
+														<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+														<polyline points="14 2 14 8 20 8"></polyline>
+													</svg>
+												}
+												<span dir="ltr" class="text-gray-300 truncate max-w-[220px]">
+													{ file.Name }
+												</span>
+												<!-- Delete Button -->
+												if myUser.ID == msg.SenderID {
+													@deleteFileButton(msg.ReceiverID, msg.GroupID, file)
+												}
+											</div>
+										}
+									}
+								</div>
+							}
+						</div>
 					</div>
 				</div>
-				<div class="flex space-x-4 mr-4">
-					<div>
-						<i class="fas fa-search text-gray-600"></i>
-					</div>
-					<div class="relative">
-						<button id="chat__toggle" class="cursor-pointer focus:outline-none">
-							<i class="fas fa-ellipsis-v text-gray-600"></i>
+			}
+		</div>
+		<!-- Message Input -->
+		<div id="chat__container" class="bg-gray-200 p-4 relative z-2" data-group-id={ g.ID }>
+			<div class="w-full mx-auto max-w-5xl">
+				<div id="file-preview-container" class="flex flex-row overflow-x-auto pb-2 gap-3 mb-4 hidden">
+					<!-- File previews will be inserted here -->
+				</div>
+				<div id="chat__form" data-for="chatInput" class="flex w-full items-center">
+					<!-- Attachment Button with Dropdown -->
+					<div class="relative" id="attachment-container">
+						<button
+							id="attachment-button"
+							class="cursor-pointer p-2 rounded-full text-gray-600 hover:bg-gray-200"
+						>
+							<!-- Paperclip Icon -->
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="24"
+								height="24"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								class="lucide lucide-paperclip"
+							>
+								<path
+									d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"
+								></path>
+							</svg>
 						</button>
-						<ul id="chat__menu" class="absolute z-100 right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden">
-							<li>
-								<button
-									class="cursor-pointer w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-									onclick="handleGroupInfo('open')"
+						<!-- Dropdown Menu -->
+						<div
+							id="attachment-dropdown"
+							class="absolute bottom-full left-0 mb-2 hidden w-40 bg-white rounded-lg shadow-lg p-2"
+						>
+							<button
+								id="file-button"
+								class="cursor-pointer flex items-center gap-2 w-full text-left px-3 py-2 rounded-md hover:bg-gray-100"
+							>
+								<!-- File Icon -->
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="20"
+									height="20"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									class="lucide lucide-file"
 								>
-									Group Info
-								</button>
-							</li>
-							<li>
-								<button
-									class="cursor-pointer w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-									hx-delete={ fmt.Sprintf("/chat/clear?group=%s", g.ID) }
-									hx-confirm="Clear this chat?"
+									<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+									<polyline points="14 2 14 8 20 8"></polyline>
+								</svg>
+								File
+							</button>
+							<button
+								id="contact-button"
+								class="cursor-pointer flex items-center gap-2 w-full text-left px-3 py-2 rounded-md hover:bg-gray-100"
+							>
+								<!-- Contact Icon -->
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="20"
+									height="20"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									class="lucide lucide-user"
 								>
-									Clear Chat
-								</button>
-							</li>
-							<li>
-								<button
-									class="cursor-pointer w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-									hx-delete={ fmt.Sprintf("/groups/%s", g.ID) }
-									hx-confirm={ fmt.Sprintf("Exit '%s' group?", g.Name) }
-								>
-									Exit Group
-								</button>
-							</li>
-						</ul>
+									<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+									<circle cx="12" cy="7" r="4"></circle>
+								</svg>
+								Contact
+							</button>
+						</div>
 					</div>
-				</div>
-			</div>
-			<!-- Chat Messages -->
-			<div
-				id="chat"
-				class="flex-1 h-[80vh] bg-[#e5ddd5] overflow-y-auto p-4"
-			>
-				<!-- Messages will go here -->
-				for _, msg := range g.Messages {
-					if msg.SenderID == myUser.ID {
-						<div
-							id="sender__message"
-							class="bg-emerald-800 text-white rounded-lg p-2 mb-2 max-w-[70%] ml-auto relative"
-						>
-							<p class="text-sm">{ msg.Content }</p>
-							<span class="text-xs absolute bottom-1 right-4">{ msg.CreatedAt.Format("2/1/2006 3:04 PM") }</span>
-						</div>
-					} else {
-						<div
-							id="receiver__message"
-							class="bg-slate-800 text-white rounded-lg p-2 mb-2 max-w-[70%] relative"
-						>
-							<p class="text-sm">{ msg.Content }</p>
-							<span class="text-xs absolute bottom-1 right-4">{ msg.CreatedAt.Format("2/1/2006 3:04 PM") }</span>
-						</div>
-					}
-				}
-			</div>
-			<!-- Message Input -->
-			<form
-				id="chat__form"
-				class="bg-gray-200 p-4 flex items-center"
-				method="post"
-				hx-ext="ignore:json-enc"
-				data-group-id={ g.ID }
-			>
-				<div
-					data-for="chatInput"
-					class="flex w-full items-center"
-				>
-					<i class="fas fa-smile text-gray-600 mr-4"></i>
-					<i class="fas fa-paperclip text-gray-600 mr-4"></i>
 					<textarea
 						id="chat__input"
 						name="chatInput"
 						placeholder="Type a message"
-						class="flex-1 py-2 px-4 bg-white rounded-md text-sm focus:outline-none resize-none overflow-auto min-h-[40px] max-h-[150px]"
+						class="flex-1 py-2 px-4 bg-white rounded-md text-sm focus:outline-none resize-none overflow-auto min-h-[40px] max-h-[150px] hide-scrollbar"
 						autofocus
 						rows="1"
 						wrap="soft"
 						maxlength="999"
 						required
 					></textarea>
-					<i class="fas fa-microphone text-gray-600 ml-4"></i>
+					<!-- Send Button -->
+					<button id="submit__chat" disabled onclick="sendChat()" class="p-2 bg-[#128C7E] text-white rounded-md">
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="24"
+							height="24"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							class="lucide lucide-send"
+						>
+							<path d="m22 2-7 20-4-9-9-4Z"></path>
+							<path d="M22 2 11 13"></path>
+						</svg>
+					</button>
 				</div>
-			</form>
+			</div>
+			<!-- Hidden file input -->
+			<input type="file" multiple id="file-input" class="hidden"/>
+			<!-- Image Preview Modal -->
+			@imagePreviewModal()
 		</div>
-		<div
-			id="right__sidebar"
-			class="hidden"
-		>
+		<div id="right__sidebar" class="hidden">
 			@GroupInfo(g)
 		</div>
-	</div>
-	<script>
+		<script>
         document.getElementById("group__info").addEventListener('click', () => {
             handleGroupInfo("open");
         });
@@ -132,10 +314,10 @@ templ GroupPage(myUser *types.User, g *types.Group) {
         });
 
         window.addEventListener('click', (event) => {
-            const dropdownMenu = document.getElementById('chat__menu');
-            const dropdownToggle = document.getElementById('chat__toggle');
-            if (dropdownToggle && dropdownMenu && !dropdownToggle.contains(event.target)) {
-                dropdownMenu.classList.add('hidden');
+            const chatMenu = document.getElementById('chat__menu');
+            const chatToggle = document.getElementById('chat__toggle');
+            if (chatToggle && chatMenu && !chatToggle.contains(event.target) && !chatMenu.contains(event.target)) {
+                chatMenu.classList.add('hidden');
             }
         });
 
@@ -148,8 +330,8 @@ templ GroupPage(myUser *types.User, g *types.Group) {
             return;
         }
 
-        document.body.addEventListener('htmx:configRequest', function(event) {
-            if (event.target.id === 'chat__form') {
+        document.body.addEventListener('htmx:configRequest', function (event) {
+            if (event.target.id === 'chat__container') {
                 event.preventDefault();  // This stops htmx from sending the request
             }
         });
@@ -157,18 +339,172 @@ templ GroupPage(myUser *types.User, g *types.Group) {
         function resizeTextarea() {
             const textarea = document.getElementById('chat__input');
             textarea.style.height = 'auto';
-            textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
+            textarea.style.height = Math.max(textarea.scrollHeight, 40) + 'px';
         }
 
-        window.addEventListener('resize', resizeTextarea);
+        // File preview template function
+        function createFilePreview(file, index) {
+            const isImage = file.type.startsWith('image/');
+            const previewEl = document.createElement('div');
+            previewEl.className = 'relative rounded-md overflow-hidden group';
 
-        document.getElementById('chat__input').addEventListener("keyup", async (event) => {
-            event.preventDefault();
+            // Create preview content based on file type
+            if (isImage) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const img = new Image();
+                    img.onload = function () {
+                        const isPortrait = img.height > img.width;
+                        previewEl.innerHTML = `
+                        <div class="h-36 flex items-center justify-center bg-black">
+                            <img 
+                            src="${e.target.result}" 
+                            class="${isPortrait ? 'h-full w-auto' : 'w-full h-auto'} max-h-36 max-w-full object-contain" alt="${file.name}" />
+                        </div>
+                        ${getFileInfoOverlay(file, index)}
+                    `;
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                previewEl.innerHTML = `
+                <div class="p-4 flex items-center justify-center gap-3 h-36 w-48 bg-black">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400">
+                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                </div>
+                <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onclick="removeFile(${index})" class="cursor-pointer p-1 bg-red-500 hover:bg-red-600 rounded text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                        </svg>
+                    </button>
+                </div>
+                ${getFileInfoOverlay(file, index)}
+            `;
+            }
 
-            if (!hasTyped && event.key.length === 1) {
+            return previewEl;
+        }
+
+        // Fungsi tambahan untuk overlay informasi file dan tombol remove
+        function getFileInfoOverlay(file, index) {
+            return `
+        <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button onclick="removeFile(${index})" class="cursor-pointer p-1 bg-red-500 hover:bg-red-600 rounded text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                </svg>
+            </button>
+        </div>
+        <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-sm p-2 truncate">
+            ${file.name}
+        </div>
+    `;
+        }
+
+        // Remove file function
+        function removeFile(index) {
+            attachedFiles.splice(index, 1);
+            updatePreviews();
+        }
+
+        // Update previews function
+        function updatePreviews() {
+            const container = document.getElementById('file-preview-container');
+
+            // Show/hide container based on whether there are files
+            if (attachedFiles.length === 0) {
+                container.classList.add('hidden');
+            } else {
+                container.classList.remove('hidden');
+            }
+
+            container.innerHTML = '';
+            attachedFiles.forEach((file, index) => {
+                container.appendChild(createFilePreview(file, index));
+            });
+        }
+
+        // Handle file selection
+        document.getElementById('file-input').addEventListener('change', function (event) {
+            const newFiles = Array.from(event.target.files);
+            attachedFiles = [...attachedFiles, ...newFiles];
+            updatePreviews();
+            this.value = ''; // Reset input
+
+            console.log("files", attachedFiles);
+            const submit = document.getElementById("submit__chat");
+            const chatInput = document.getElementById("chat__input")
+            const isDisable = changeSubmitButtonState(chatInput);
+            submit.disabled = isDisable;
+            submit.classList.toggle("hover:bg-[#075E54]", !isDisable);
+            submit.classList.toggle("cursor-pointer", !isDisable);
+        });
+
+        // Toggle dropdown when clicking the attachment button
+        document.getElementById('attachment-button').addEventListener('click', function (event) {
+            const dropdown = document.getElementById('attachment-dropdown');
+            dropdown.classList.toggle('hidden');
+            event.stopPropagation();
+        });
+
+        // Handle file button click
+        document.getElementById('file-button').addEventListener('click', function () {
+            document.getElementById('file-input').click();
+            document.getElementById('attachment-dropdown').classList.add('hidden');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function (event) {
+            const container = document.getElementById('attachment-container');
+            const dropdown = document.getElementById('attachment-dropdown');
+
+            if (container && !container.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
+        function changeSubmitButtonState(element) {
+            let disable = true;
+
+            if (attachedFiles.length > 0) {
+                disable = false;
+                console.log(`ada file: ${attachedFiles.length}, disable: ${disable}`);
+            }
+
+            if (disable && element.value.trim() != "") {
+                disable = false;
+                console.log(`ada text: ${element.value.trim()}, disable: ${disable}`);
+            }
+
+            return disable;
+        }
+
+        document.getElementById("chat__input").addEventListener("keyup", (event) => {
+            const submit = document.getElementById("submit__chat");
+            const isDisable = changeSubmitButtonState(event.target);
+
+            submit.disabled = isDisable;
+            submit.classList.toggle("hover:bg-[#075E54]", !isDisable);
+            submit.classList.toggle("cursor-pointer", !isDisable);
+
+            resizeTextarea();
+        });
+
+        document.getElementById('chat__input').addEventListener("focusout", (event) => {
+            hasTyped = false;
+        });
+
+        document.getElementById('chat__input').addEventListener("keydown", (event) => {
+            const chatContainer = document.getElementById("chat__container");
+            const groupId = chatContainer.getAttribute("data-group-id");
+
+            if (!hasTyped) {
                 hasTyped = true;
-                const chatForm = document.getElementById("chat__form");
-                const groupId = chatForm.getAttribute("data-group-id");
 
                 webSocket.sendMessage({
                     type: "MARK_MSGS_AS_READ",
@@ -177,37 +513,74 @@ templ GroupPage(myUser *types.User, g *types.Group) {
                     },
                 })
 
-                const group = document.getElementById(`unread__group__chat__${receiverId}`);
+                const group = document.getElementById(`unread__group__chat__${groupId}`);
                 if (group) {
                     group.className = "invisible";
                     group.innerHTML = 0;
                 }
             }
 
+            if (!event.shiftKey && event.key === "Enter") {
+                event.preventDefault();
+
+                console.log("group chat submitted", event);
+
+                sendChat();
+            }
+
             resizeTextarea();
         });
+
         resizeTextarea();
 
-        document.getElementById("chat__form").addEventListener("submit", async (event) => {
-            event.preventDefault();
-
-            const chatForm = document.getElementById("chat__form");
+        async function sendChat() {
+            const chatForm = document.getElementById("chat__container");
             const groupId = chatForm.getAttribute("data-group-id");
             let chatInput = document.getElementById("chat__input");
-            const myUserId = getCookieByName("userId");
-            if (!chatInput.value.trim()) return; // Prevent empty messages
+            if (attachedFiles.length == 0 && !chatInput.value.trim()) return; // Prevent empty messages
 
-            webSocket.sendMessage({
-                type: "GROUP_CHAT",
-                body: {
-                    groupId: groupId,
-                    content: chatInput.value
-                },
-            });
+            if (attachedFiles.length == 0) {
+                webSocket.sendMessage({
+                    type: "GROUP_CHAT",
+                    body: {
+                        groupId: groupId,
+                        content: chatInput.value
+                    },
+                });
+            } else {
+                const fd = new FormData();
+
+                fd.append("groupId", groupId);
+                if (chatInput.value) {
+                    fd.append("content", chatInput.value);
+                }
+
+                for (let i = 0; i < attachedFiles.length; i++) {
+                    const file = attachedFiles[i];
+                    fd.append("files[]", file);
+                }
+
+                console.log("files", fd.getAll("files[]"));
+
+                const res = await fetch(`http://${window.location.host}/api/messages`, {
+                    method: 'POST',
+                    body: fd
+                });
+
+                if (!res.ok) {
+                    alert("Sending chat failed");
+                    return;
+                }
+
+                const json = await res.json();
+                console.log("chat json", json);
+            }
 
             chatInput.value = '';
+            attachedFiles = [];
+            updatePreviews();
             hasTyped = false;
-        });
+        }
 
         function scrollToBottom() {
             const chatContainer = document.getElementById("chat");
@@ -215,8 +588,9 @@ templ GroupPage(myUser *types.User, g *types.Group) {
         }
 
         // Append message to the chat box
-        function appendGroupMessage(myUserId, senderId, content, createdAt) {
-            const date = new Date(createdAt);
+        function appendGroupMessage(myUserId, body) {
+            const date = new Date(body.createdAt);
+            console.log("body message", body);
             const chatContainer = document.getElementById("chat");
             const formattedDate = date.toLocaleString('en-US', {
                 day: 'numeric',
@@ -227,16 +601,161 @@ templ GroupPage(myUser *types.User, g *types.Group) {
                 hour12: true
             }).replace('am', 'AM').replace('pm', 'PM');
 
-            const newMsg = `
-                <div class="${myUserId === senderId? "bg-emerald-800 ml-auto" : "bg-slate-800"} text-white rounded-lg p-2 mb-2 max-w-[70%] relative">
-                    <p class="text-sm">${content}</p>
-                    <span class="text-xs absolute bottom-1 right-4">${formattedDate}</span>
-                </div>
-            `;
-            document.getElementById('chat').insertAdjacentHTML('beforeend', newMsg);
+            const messageWrapper = document.createElement("div");
+            messageWrapper.className = "flex gap-4";
+
+            const messageAlign = document.createElement("div");
+            messageAlign.className = `flex flex-1 min-w-0 ${myUserId == body.senderId ? "justify-end" : "justify-start"}`;
+
+            const messageBubble = document.createElement("div");
+            messageBubble.className = "w-max text-white rounded-lg px-3 py-2 shadow-md relative max-w-3/4";
+
+            // Header with timestamp
+            const header = document.createElement("div");
+            if (body.senderId == myUserId) {
+                header.className = "flex items-center flex-row-reverse gap-2 mb-1";
+            } else {
+                header.className = "flex items-center gap-2 mb-1";
+            }
+            //<div class="text-xs text-[#00a884] mb-1">{ utils.GetFullName(msg.Sender) }</div>
+            const imgProfile = document.createElement("img");
+            imgProfile.className = "w-8 h-8 rounded-full";
+            imgProfile.alt = "Sender Profile";
+            imgProfile.src = `/api/users/images/${body.senderId}`;
+            header.appendChild(imgProfile);
+            const senderName = document.createElement("div");
+            senderName.className = "text-xs text-[#00a884] mb-1";
+            senderName.textContent = body.senderName;
+            header.appendChild(senderName);
+            const timestamp = document.createElement("span");
+            timestamp.className = "text-xs text-gray-400";
+            timestamp.textContent = formattedDate;
+            header.appendChild(timestamp);
+            messageBubble.appendChild(header);
+
+            if (body.content) {
+                const contentDiv = document.createElement("div");
+                contentDiv.className = "whitespace-pre-wrap";
+                contentDiv.textContent = body.content;
+                messageBubble.appendChild(contentDiv);
+            }
+
+            if (body.files && body.files.length > 0) {
+                const fileContainer = document.createElement("div");
+                fileContainer.className = "mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2";
+
+                body.files.forEach(file => {
+                    if (file.type.startsWith("image/")) {
+                        const imageWrapper = document.createElement("div");
+                        imageWrapper.className = "relative group/image aspect-video bg-discord-light rounded-md max-w-70 max-h-40";
+                        imageWrapper.id = file.id;
+
+                        const image = document.createElement("img");
+                        image.src = `/api/messages/${file.messageId}/files/${file.id}`;
+                        image.alt = file.name;
+                        image.className = "w-70 h-45 object-contain";
+
+                        const overlay = document.createElement("div");
+                        overlay.className = "absolute inset-0 group-hover/image:bg-opacity-40 transition-all";
+
+                        const buttonWrapper = document.createElement("div");
+                        buttonWrapper.className = "absolute top-2 right-2 opacity-0 group-hover/image:opacity-100 transition-opacity flex gap-1";
+
+                        if (body.senderId == myUserId) {
+                            const deleteButton = document.createElement("button");
+                            deleteButton.className = "cursor-pointer p-1 bg-red-500 rounded hover:bg-red-600";
+                            deleteButton.innerHTML = `
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" class="text-white">
+                            <path d="M3 6h18"></path>
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                            </svg>`;
+
+                            buttonWrapper.appendChild(deleteButton);
+                        }
+
+                        overlay.appendChild(buttonWrapper);
+                        imageWrapper.appendChild(image);
+                        imageWrapper.appendChild(overlay);
+                        fileContainer.appendChild(imageWrapper);
+                    } else {
+                        const fileWrapper = document.createElement("div");
+                        fileWrapper.className = "relative group/file rounded-md p-3 flex items-center gap-3 max-w-70 max-h-40";
+                        fileWrapper.id = file.id;
+
+                        const fileIcon = document.createElement("svg");
+                        fileIcon.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                         stroke-linejoin="round" class="text-gray-400">
+                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>`;
+
+                        const fileName = document.createElement("span");
+                        fileName.className = "text-gray-300 truncate";
+                        fileName.textContent = file.name;
+
+                        const buttonWrapper = document.createElement("div");
+                        buttonWrapper.className = "absolute top-2 right-2 opacity-0 group-hover/file:opacity-100 transition-opacity flex gap-1";
+
+                        if (body.senderId === myUserId) {
+                            const deleteButton = document.createElement("button");
+                            deleteButton.className = "cursor-pointer p-1 bg-red-500 rounded hover:bg-red-600";
+                            deleteButton.innerHTML = `
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" class="text-white">
+                                <path d="M3 6h18"></path>
+                                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                                </svg>`;
+                            buttonWrapper.appendChild(deleteButton);
+                        }
+
+                        fileWrapper.appendChild(fileIcon);
+                        fileWrapper.appendChild(fileName);
+                        fileWrapper.appendChild(buttonWrapper);
+                        fileContainer.appendChild(fileWrapper);
+                    }
+                });
+
+                messageBubble.appendChild(fileContainer);
+            }
+
+            messageAlign.appendChild(messageBubble);
+            messageWrapper.appendChild(messageAlign);
+
+            // document.getElementById('chat').insertAdjacentHTML('beforeend', newMsg);
+            document.getElementById('chat').appendChild(messageWrapper);
             scrollToBottom();
+        }
+
+        async function deleteFile(receiverId, groupId, file) {
+            const confirmation = confirm(`Delete file ${file.name}?`);
+
+            if (confirmation) {
+                const res = await fetch(`http://${window.location.host}/api/messages/${file.messageId}/files/${file.id}`, {
+                    method: "DELETE",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        receiverId: receiverId,
+                        groupId: groupId
+                    })
+                });
+
+                if (!res.ok) {
+                    alert("Deleting file failed");
+                    return;
+                }
+            }
         }
 
         scrollToBottom();
     </script>
+	</div>
 }

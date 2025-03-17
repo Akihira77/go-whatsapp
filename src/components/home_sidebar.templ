@@ -3,14 +3,9 @@ package components
 import "github.com/Akihira77/go_whatsapp/src/types"
 
 templ HomeSidebar(myInfo *types.User, chatList []types.ChatDto) {
-	<div
-		id="main__sidebar"
-		class="w-1/4 bg-white border-r border-gray-300 flex flex-col"
-	>
+	<div id="main__sidebar" class="w-1/4 bg-white border-r border-gray-300 flex flex-col">
 		@ProfileSection(myInfo)
-		<div
-			id="sidebar"
-		>
+		<div id="sidebar">
 			<div class="p-3">
 				<div class="relative">
 					<input
@@ -29,11 +24,8 @@ templ HomeSidebar(myInfo *types.User, chatList []types.ChatDto) {
 				</div>
 			</div>
 		</div>
-		<div
-			id="chat__list"
-			class="overflow-y-auto h-[calc(100vh-120px)]"
-		>
+		<ul id="chat__list" class="overflow-y-auto h-[calc(100vh-120px)]">
 			@ChatList(chatList)
-		</div>
+		</ul>
 	</div>
 }

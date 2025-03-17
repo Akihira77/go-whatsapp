@@ -7,7 +7,17 @@ module.exports = {
     "./**/*.go",
   ],
   theme: {
-    extend: {},
+    extend: {
+      extend: {
+        colors: {
+          whatsapp: {
+            light: "#25D366",
+            DEFAULT: "#128C7E",
+            dark: "#075E54",
+          },
+        },
+      },
+    },
   },
   plugins: [],
 };

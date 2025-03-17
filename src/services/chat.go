@@ -2,21 +2,26 @@ package services
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log/slog"
 	"time"
 
 	"github.com/Akihira77/go_whatsapp/src/repositories"
 	"github.com/Akihira77/go_whatsapp/src/types"
 	"github.com/oklog/ulid/v2"
+	"gorm.io/gorm"
 )
 
 type ChatService struct {
 	chatRepository *repositories.ChatRepository
+	userRepository *repositories.UserRepository
 }
 
-func NewChatService(chatRepository *repositories.ChatRepository) *ChatService {
+func NewChatService(chatRepository *repositories.ChatRepository, userRepository *repositories.UserRepository) *ChatService {
 	return &ChatService{
 		chatRepository: chatRepository,
+		userRepository: userRepository,
 	}
 }
 
@@ -59,8 +64,17 @@ func (cs *ChatService) SearchChat(ctx context.Context, myUserId, userName, group
 	return chatHistories, err
 }
 
-func (cs *ChatService) AddMessage(ctx context.Context, data *types.CreateMessage) (types.Message, error) {
-	msg := types.Message{
+func (cs *ChatService) AddMessage(ctx context.Context, data *types.CreateMessage) (*types.Message, error) {
+	sender, err := cs.userRepository.FindByID(ctx, data.SenderID)
+	if err != nil {
+		slog.Error("Finding sender information is failed",
+			"senderId", data.SenderID,
+			"err", err,
+		)
+		return nil, fmt.Errorf("Sender is not found")
+	}
+
+	newMsg := types.Message{
 		ID:         ulid.Make().String(),
 		Content:    data.Content,
 		SenderID:   data.SenderID,
@@ -72,18 +86,34 @@ func (cs *ChatService) AddMessage(ctx context.Context, data *types.CreateMessage
 		CreatedAt:  time.Now(),
 	}
 
-	err := cs.
+	msg, err := cs.
 		chatRepository.
-		AddMessage(ctx, msg)
+		AddMessage(ctx, newMsg, data.Files)
 	if err != nil {
 		slog.Error("Add message",
 			"error", err,
 		)
 
-		return types.Message{}, err
+		return &types.Message{}, fmt.Errorf("Sending chat failed")
 	}
 
-	return msg, err
+	for i := range msg.Files {
+		msg.Files[i] = types.File{
+			ID:        msg.Files[i].ID,
+			MessageID: msg.ID,
+			Name:      msg.Files[i].Name,
+			Type:      msg.Files[i].Type,
+		}
+	}
+
+	var g *types.Group
+	if data.GroupID != nil {
+		g, _ = cs.userRepository.FindGroupByID(ctx, *data.GroupID)
+		msg.Group = g
+	}
+
+	msg.Sender = sender
+	return msg, nil
 }
 
 func (cs *ChatService) EditMessage(ctx context.Context, data *types.Message) (types.Message, error) {
@@ -120,7 +150,7 @@ func (cs *ChatService) SoftDeleteMessage(ctx context.Context, data *types.Messag
 	return *data, err
 }
 
-func (cs *ChatService) MarkMessagesAsRead(ctx context.Context, senderId, receiverId, groupId string) ([]types.Message, error) {
+func (cs *ChatService) MarkMessagesAsRead(ctx context.Context, senderId string, receiverId *string, groupId *string) ([]types.Message, error) {
 	err := cs.
 		chatRepository.
 		MarkMessagesAsRead(ctx, senderId, receiverId, groupId)
@@ -132,9 +162,48 @@ func (cs *ChatService) MarkMessagesAsRead(ctx context.Context, senderId, receive
 		return []types.Message{}, err
 	}
 
-	if groupId != "" {
-		return cs.GetMessagesInsideGroup(ctx, groupId)
+	if groupId != nil {
+		return cs.GetMessagesInsideGroup(ctx, *groupId)
 	}
 
-	return cs.GetMessages(ctx, senderId, receiverId)
+	return cs.GetMessages(ctx, senderId, *receiverId)
+}
+
+func (cs *ChatService) FindFileInsideChat(ctx context.Context, messageId, fileId string) (*types.File, error) {
+	f, err := cs.chatRepository.FindFileInsideChat(ctx, messageId, fileId)
+	if err != nil {
+		slog.Error("Failed retrieving file",
+			"messageId", messageId,
+			"fileId", fileId,
+			"err", err,
+		)
+
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("File you are searching is not found")
+		}
+
+		return nil, fmt.Errorf("Error while searching file")
+	}
+
+	return f, nil
+}
+
+func (cs *ChatService) DeleteFile(ctx context.Context, messageId, fileId string) error {
+	_, err := cs.FindFileInsideChat(ctx, messageId, fileId)
+	if err != nil {
+		return err
+	}
+
+	err = cs.chatRepository.DeleteFile(ctx, messageId, fileId)
+	if err != nil {
+		slog.Error("Deleting file",
+			"msgId", messageId,
+			"fileId", fileId,
+			"err", err,
+		)
+
+		return err
+	}
+
+	return nil
 }

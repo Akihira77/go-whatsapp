@@ -42,14 +42,20 @@ var (
 	MARK_MSGS_AS_READ    MessageType = "MARK_MSGS_AS_READ"
 	RECEIVE_NOTIFICATION MessageType = "RECEIVE_NOTIFICATION"
 	SEND_NOTIFICATION    MessageType = "SEND_NOTIFICATION"
+	EXIT_GROUP           MessageType = "EXIT_GROUP"
 )
 
 type WsMessageBody struct {
-	SenderID   string     `json:"senderId"`
-	ReceiverID string     `json:"receiverId,omitempty"`
-	GroupID    string     `json:"groupId,omitempty"`
-	Content    string     `json:"content"`
-	CreatedAt  *time.Time `json:"createdAt,omitempty"`
+	SenderID   string       `json:"senderId"`
+	SenderName string       `json:"senderName"`
+	ReceiverID *string      `json:"receiverId,omitempty"`
+	GroupID    *string      `json:"groupId,omitempty"`
+	GroupName  string       `json:"groupName"`
+	MessageID  *string      `json:"messageId,omitempty"`
+	FileID     *string      `json:"fileId,omitempty"`
+	Content    *string      `json:"content,omitempty"`
+	Files      []types.File `json:"files,omitempty"`
+	CreatedAt  *time.Time   `json:"createdAt,omitempty"`
 }
 
 type WsMessage struct {
@@ -58,18 +64,18 @@ type WsMessage struct {
 }
 
 type Client struct {
-	hub      *Hub
-	conn     *websocket.Conn
-	send     chan []byte
-	UserID   string
-	User     *types.User
-	GroupIds map[string]bool
+	hub    *Hub
+	conn   *websocket.Conn
+	send   chan []byte
+	UserID string
+	User   *types.User
+	Groups map[string]*types.Group
 }
 
 type Hub struct {
 	sync.RWMutex
 	clients    map[string]*Client
-	broadcast  chan *WsMessage
+	Broadcast  chan *WsMessage
 	register   chan *Client
 	unregister chan *Client
 	v          *utils.MyValidator
@@ -77,7 +83,7 @@ type Hub struct {
 
 func NewHub() *Hub {
 	return &Hub{
-		broadcast:  make(chan *WsMessage),
+		Broadcast:  make(chan *WsMessage),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		clients:    make(map[string]*Client),
@@ -116,7 +122,7 @@ func (h *Hub) Run() {
 
 				cleanupClient(client)
 			}
-		case msg := <-h.broadcast:
+		case msg := <-h.Broadcast:
 			b, err := json.Marshal(msg)
 			if err != nil {
 				slog.Error("Marshalling message error",
@@ -144,7 +150,7 @@ func (h *Hub) Run() {
 					}
 				}
 
-				if client, ok := h.clients[msg.Body.ReceiverID]; ok {
+				if client, ok := h.clients[*msg.Body.ReceiverID]; ok {
 					slog.Info("Client receiving peer to peer msg",
 						"receiver", client.User.Email,
 					)
@@ -177,8 +183,23 @@ func (h *Hub) Run() {
 			case GROUP_CHAT:
 				for userId := range h.clients {
 					client := h.clients[userId]
-					if _, ok := client.GroupIds[msg.Body.GroupID]; ok {
+					if _, ok := client.Groups[*msg.Body.GroupID]; ok {
 						slog.Info("Client sending to group msg",
+							"client", client.User.Email,
+						)
+
+						select {
+						case client.send <- b:
+						default:
+							cleanupClient(client)
+						}
+					}
+				}
+			case EXIT_GROUP:
+				for userId := range h.clients {
+					client := h.clients[userId]
+					if _, ok := client.Groups[*msg.Body.GroupID]; ok {
+						slog.Info("Client exiting group chat",
 							"client", client.User.Email,
 						)
 
@@ -234,8 +255,18 @@ func (c *Client) readPump(userService *services.UserService, chatService *servic
 
 		switch data.Type {
 		case MARK_MSGS_AS_READ:
-			slog.Info("Marking message as read")
-			_, err := chatService.MarkMessagesAsRead(context.Background(), data.Body.SenderID, c.UserID, data.Body.GroupID)
+			slog.Info("Marking message as read",
+				"senderId", data.Body.SenderID,
+				"groupId", data.Body.GroupID,
+			)
+
+			var err error
+			if data.Body.GroupID != nil {
+				_, err = chatService.MarkMessagesAsRead(context.Background(), data.Body.SenderID, nil, data.Body.GroupID)
+			} else {
+				_, err = chatService.MarkMessagesAsRead(context.Background(), data.Body.SenderID, &c.UserID, nil)
+			}
+
 			if err != nil {
 				slog.Error("Marking messages as read",
 					"error", err,
@@ -251,10 +282,10 @@ func (c *Client) readPump(userService *services.UserService, chatService *servic
 			slog.Info("Adding message PEER CHAT")
 
 			m, err := chatService.AddMessage(context.Background(), &types.CreateMessage{
-				Content:    data.Body.Content,
+				Content:    *data.Body.Content,
 				SenderID:   data.Body.SenderID,
 				ReceiverID: data.Body.ReceiverID,
-				GroupID:    data.Body.GroupID,
+				GroupID:    nil,
 			})
 			if err != nil {
 				slog.Error("Adding message",
@@ -263,15 +294,16 @@ func (c *Client) readPump(userService *services.UserService, chatService *servic
 				return
 			}
 
+			data.Body.SenderName = utils.GetFullName(m.Sender)
 			data.Body.CreatedAt = &m.CreatedAt
 		case GROUP_CHAT:
 			data.Body.SenderID = c.UserID
 			slog.Info("Adding message GROUP CHAT")
 
 			m, err := chatService.AddMessage(context.Background(), &types.CreateMessage{
-				Content:    data.Body.Content,
+				Content:    *data.Body.Content,
 				SenderID:   data.Body.SenderID,
-				ReceiverID: data.Body.ReceiverID,
+				ReceiverID: nil,
 				GroupID:    data.Body.GroupID,
 			})
 			if err != nil {
@@ -282,12 +314,33 @@ func (c *Client) readPump(userService *services.UserService, chatService *servic
 			}
 
 			data.Body.CreatedAt = &m.CreatedAt
+			data.Body.SenderName = utils.GetFullName(m.Sender)
+		case EXIT_GROUP:
+			data.Body.SenderID = c.UserID
+			slog.Info("Exiting GROUP CHAT",
+				"email", c.User.Email,
+			)
+
+			g, ok := c.Groups[*data.Body.GroupID]
+			if !ok {
+				slog.Error("Group is not found",
+					"groupId", data.Body.GroupID,
+				)
+				return
+			}
+
+			result, err := userService.ExitGroup(context.Background(), c.UserID, g)
+			if err != nil || !result {
+				slog.Error("Failed exiting group",
+					"group", g)
+				return
+			}
 		default:
 			slog.Error("Unknown message type")
 			return
 		}
 
-		c.hub.broadcast <- &data
+		c.hub.Broadcast <- &data
 	}
 }
 
@@ -368,7 +421,7 @@ func ServeWs(c *gin.Context, hub *Hub, userService *services.UserService, chatSe
 		"user", user.Email,
 	)
 
-	groupdIds := make(map[string]bool)
+	groupMaps := make(map[string]*types.Group)
 	groups, err := userService.FindGroups(c, user.ID)
 	if err != nil {
 		slog.Error("Failed retrieving your groups",
@@ -378,7 +431,7 @@ func ServeWs(c *gin.Context, hub *Hub, userService *services.UserService, chatSe
 	}
 
 	for _, g := range groups {
-		groupdIds[g.GroupID] = true
+		groupMaps[g.GroupID] = &g.Group
 	}
 	slog.Info("Your group count",
 		"group", len(groups),
@@ -393,12 +446,12 @@ func ServeWs(c *gin.Context, hub *Hub, userService *services.UserService, chatSe
 	}
 
 	client := &Client{
-		hub:      hub,
-		conn:     conn,
-		send:     make(chan []byte),
-		UserID:   user.ID,
-		User:     user,
-		GroupIds: groupdIds,
+		hub:    hub,
+		conn:   conn,
+		send:   make(chan []byte),
+		UserID: user.ID,
+		User:   user,
+		Groups: groupMaps,
 	}
 	client.hub.register <- client
 
