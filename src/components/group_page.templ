@@ -103,7 +103,7 @@ templ GroupPage(myUser *types.User, g *types.Group) {
 								<div class="mt-2 grid grid-cols-2 gap-2 relative">
 									for _, file := range msg.Files {
 										if strings.HasPrefix(file.Type, "image/") {
-											@imgLayout(myUser, file)
+											@imgLayout(msg, myUser, file)
 										} else {
 											<!-- Tentukan ikon berdasarkan jenis file -->
 											<div
@@ -170,7 +170,9 @@ templ GroupPage(myUser *types.User, g *types.Group) {
 													{ file.Name }
 												</span>
 												<!-- Delete Button -->
-												@deleteFileButton(myUser, file)
+												if myUser.ID == msg.SenderID {
+													@deleteFileButton(msg.ReceiverID, msg.GroupID, file)
+												}
 											</div>
 										}
 									}
@@ -493,11 +495,15 @@ templ GroupPage(myUser *types.User, g *types.Group) {
             resizeTextarea();
         });
 
+        document.getElementById('chat__input').addEventListener("focusout", (event) => {
+            hasTyped = false;
+        });
+
         document.getElementById('chat__input').addEventListener("keydown", (event) => {
             const chatContainer = document.getElementById("chat__container");
             const groupId = chatContainer.getAttribute("data-group-id");
 
-            if (!hasTyped && event.key.length === 1) {
+            if (!hasTyped) {
                 hasTyped = true;
 
                 webSocket.sendMessage({
@@ -642,6 +648,7 @@ templ GroupPage(myUser *types.User, g *types.Group) {
                     if (file.type.startsWith("image/")) {
                         const imageWrapper = document.createElement("div");
                         imageWrapper.className = "relative group/image aspect-video bg-discord-light rounded-md max-w-70 max-h-40";
+                        imageWrapper.id = file.id;
 
                         const image = document.createElement("img");
                         image.src = `/api/messages/${file.messageId}/files/${file.id}`;
@@ -654,18 +661,21 @@ templ GroupPage(myUser *types.User, g *types.Group) {
                         const buttonWrapper = document.createElement("div");
                         buttonWrapper.className = "absolute top-2 right-2 opacity-0 group-hover/image:opacity-100 transition-opacity flex gap-1";
 
-                        const deleteButton = document.createElement("button");
-                        deleteButton.className = "cursor-pointer p-1 bg-red-500 rounded hover:bg-red-600";
-                        deleteButton.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                         stroke-linejoin="round" class="text-white">
-                        <path d="M3 6h18"></path>
-                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                    </svg>`;
+                        if (body.senderId == myUserId) {
+                            const deleteButton = document.createElement("button");
+                            deleteButton.className = "cursor-pointer p-1 bg-red-500 rounded hover:bg-red-600";
+                            deleteButton.innerHTML = `
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" class="text-white">
+                            <path d="M3 6h18"></path>
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                            </svg>`;
 
-                        buttonWrapper.appendChild(deleteButton);
+                            buttonWrapper.appendChild(deleteButton);
+                        }
+
                         overlay.appendChild(buttonWrapper);
                         imageWrapper.appendChild(image);
                         imageWrapper.appendChild(overlay);
@@ -673,6 +683,7 @@ templ GroupPage(myUser *types.User, g *types.Group) {
                     } else {
                         const fileWrapper = document.createElement("div");
                         fileWrapper.className = "relative group/file rounded-md p-3 flex items-center gap-3 max-w-70 max-h-40";
+                        fileWrapper.id = file.id;
 
                         const fileIcon = document.createElement("svg");
                         fileIcon.innerHTML = `
@@ -690,18 +701,20 @@ templ GroupPage(myUser *types.User, g *types.Group) {
                         const buttonWrapper = document.createElement("div");
                         buttonWrapper.className = "absolute top-2 right-2 opacity-0 group-hover/file:opacity-100 transition-opacity flex gap-1";
 
-                        const deleteButton = document.createElement("button");
-                        deleteButton.className = "cursor-pointer p-1 bg-red-500 rounded hover:bg-red-600";
-                        deleteButton.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                         stroke-linejoin="round" class="text-white">
-                        <path d="M3 6h18"></path>
-                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                    </svg>`;
+                        if (body.senderId === myUserId) {
+                            const deleteButton = document.createElement("button");
+                            deleteButton.className = "cursor-pointer p-1 bg-red-500 rounded hover:bg-red-600";
+                            deleteButton.innerHTML = `
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" class="text-white">
+                                <path d="M3 6h18"></path>
+                                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                                </svg>`;
+                            buttonWrapper.appendChild(deleteButton);
+                        }
 
-                        buttonWrapper.appendChild(deleteButton);
                         fileWrapper.appendChild(fileIcon);
                         fileWrapper.appendChild(fileName);
                         fileWrapper.appendChild(buttonWrapper);
@@ -720,7 +733,7 @@ templ GroupPage(myUser *types.User, g *types.Group) {
             scrollToBottom();
         }
 
-        async function deleteFile(receiver, file) {
+        async function deleteFile(receiverId, groupId, file) {
             const confirmation = confirm(`Delete file ${file.name}?`);
 
             if (confirmation) {
@@ -730,7 +743,8 @@ templ GroupPage(myUser *types.User, g *types.Group) {
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
-                        receiverId: receiver.id,
+                        receiverId: receiverId,
+                        groupId: groupId
                     })
                 });
 

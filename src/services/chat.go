@@ -106,6 +106,12 @@ func (cs *ChatService) AddMessage(ctx context.Context, data *types.CreateMessage
 		}
 	}
 
+	var g *types.Group
+	if data.GroupID != nil {
+		g, _ = cs.userRepository.FindGroupByID(ctx, *data.GroupID)
+		msg.Group = g
+	}
+
 	msg.Sender = sender
 	return msg, nil
 }

@@ -144,6 +144,7 @@ func (ch *ChatHandler) SendMsg(c *gin.Context) {
 
 		if data.GroupID != nil {
 			wsMsg.Type = GROUP_CHAT
+			wsMsg.Body.GroupName = msg.Group.Name
 		} else {
 			wsMsg.Type = PEER_CHAT
 		}
