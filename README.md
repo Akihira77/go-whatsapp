@@ -18,7 +18,7 @@ Go-WhatsApp adalah proyek WhatsApp clone yang dibangun menggunakan:
 
 🔲 Undangan grup, menghapus/kick anggota, dan menaikkan anggota menjadi admin  
 🔲 Fitur story (mirip status WhatsApp)  
-🔲 Membuat file dapat diunduh dengan menyediakan tombol download  
-🔲 Menghapus pesan (saat ini hanya mendukung penghapusan file)  
+✅ Membuat file dapat diunduh dengan menyediakan tombol download  
+✅ Menghapus pesan (saat ini hanya mendukung penghapusan file)  
 🔲 Pagination dan infinite scrolling untuk menampilkan pesan  
 🔲 Mendukung Markdown dalam input pesan  
