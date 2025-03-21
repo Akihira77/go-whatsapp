@@ -69,12 +69,12 @@ templ GroupPage(myUser *types.User, g *types.Group) {
 				<div id={ msg.ID } class="flex gap-4 border-y-2 border-slate-200">
 					<div
 						if msg.SenderID==myUser.ID {
-							class="flex flex-1 justify-end min-w-0"
+							class="flex flex-1 justify-end min-w-0 group"
 						} else {
-							class="flex flex-1 justify-start min-w-0"
+							class="flex flex-1 justify-start min-w-0 group"
 						}
 					>
-						<div class="w-max text-white rounded-lg px-3 py-2 shadow-md relative max-w-3/4">
+						<div class="w-max text-white rounded-lg px-3 py-2 shadow-md relative max-w-[40%]">
 							<!-- Header -->
 							<div
 								if msg.SenderID==myUser.ID {
@@ -100,7 +100,7 @@ templ GroupPage(myUser *types.User, g *types.Group) {
 								</div>
 							}
 							if len(msg.Files) > 0 {
-								<div class="mt-2 grid grid-cols-2 gap-2 relative">
+								<div class="mt-2 grid grid-cols-2 gap-2 relative group/file">
 									for _, file := range msg.Files {
 										if strings.HasPrefix(file.Type, "image/") {
 											@imgLayout(msg, myUser, file)
@@ -170,13 +170,40 @@ templ GroupPage(myUser *types.User, g *types.Group) {
 													{ file.Name }
 												</span>
 												<!-- Delete Button -->
-												if myUser.ID == msg.SenderID {
-													@deleteFileButton(msg.ReceiverID, msg.GroupID, file)
-												}
+												@menuFileButton(myUser, msg, file)
 											</div>
 										}
 									}
 								</div>
+								<!-- Three-dot menu that appears ONLY on hover -->
+								if msg.SenderID == myUser.ID {
+									<div
+										class="absolute -left-7 top-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto"
+									>
+										<button class="p-1 rounded-full hover:bg-gray-200 three-dot-button cursor-pointer">
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												class="h-5 w-5 text-gray-500"
+												viewBox="0 0 20 20"
+												fill="currentColor"
+											>
+												<path
+													d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"
+												></path>
+											</svg>
+										</button>
+										<!-- Dropdown menu (shown on click) -->
+										<div
+											class="hidden absolute right-0 mt-1 w-36 rounded-md bg-white shadow-lg ring-1 ring-black/5 z-10 dropdown-menu"
+										>
+											<button
+												class="cursor-pointer block w-full rounded-md px-4 py-2 text-sm text-red-600 hover:bg-gray-100 text-left"
+											>
+												Delete message
+											</button>
+										</div>
+									</div>
+								}
 							}
 						</div>
 					</div>
@@ -243,6 +270,7 @@ templ GroupPage(myUser *types.User, g *types.Group) {
 							</button>
 							<button
 								id="contact-button"
+								grouppage
 								class="cursor-pointer flex items-center gap-2 w-full text-left px-3 py-2 rounded-md hover:bg-gray-100"
 							>
 								<!-- Contact Icon -->
@@ -375,7 +403,7 @@ templ GroupPage(myUser *types.User, g *types.Group) {
                         <polyline points="14 2 14 8 20 8"/>
                     </svg>
                 </div>
-                <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div class="absolute top-2 right-2 opacity-0 group-hover/file:opacity-100 transition-opacity">
                     <button onclick="removeFile(${index})" class="cursor-pointer p-1 bg-red-500 hover:bg-red-600 rounded text-white">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
@@ -392,7 +420,7 @@ templ GroupPage(myUser *types.User, g *types.Group) {
         // Fungsi tambahan untuk overlay informasi file dan tombol remove
         function getFileInfoOverlay(file, index) {
             return `
-        <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div class="absolute top-2 right-2 opacity-0 group-hover/file:opacity-100 transition-opacity">
             <button onclick="removeFile(${index})" class="cursor-pointer p-1 bg-red-500 hover:bg-red-600 rounded text-white">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
@@ -608,7 +636,7 @@ templ GroupPage(myUser *types.User, g *types.Group) {
             messageAlign.className = `flex flex-1 min-w-0 ${myUserId == body.senderId ? "justify-end" : "justify-start"}`;
 
             const messageBubble = document.createElement("div");
-            messageBubble.className = "w-max text-white rounded-lg px-3 py-2 shadow-md relative max-w-3/4";
+            messageBubble.className = "w-max text-white rounded-lg px-3 py-2 shadow-md relative max-w-[40%]";
 
             // Header with timestamp
             const header = document.createElement("div");
@@ -647,7 +675,7 @@ templ GroupPage(myUser *types.User, g *types.Group) {
                 body.files.forEach(file => {
                     if (file.type.startsWith("image/")) {
                         const imageWrapper = document.createElement("div");
-                        imageWrapper.className = "relative group/image aspect-video bg-discord-light rounded-md max-w-70 max-h-40";
+                        imageWrapper.className = "relative group/file aspect-video bg-discord-light rounded-md max-w-70 max-h-40";
                         imageWrapper.id = file.id;
 
                         const image = document.createElement("img");
@@ -656,10 +684,10 @@ templ GroupPage(myUser *types.User, g *types.Group) {
                         image.className = "w-70 h-45 object-contain";
 
                         const overlay = document.createElement("div");
-                        overlay.className = "absolute inset-0 group-hover/image:bg-opacity-40 transition-all";
+                        overlay.className = "absolute inset-0 group-hover/file:bg-opacity-40 transition-all";
 
                         const buttonWrapper = document.createElement("div");
-                        buttonWrapper.className = "absolute top-2 right-2 opacity-0 group-hover/image:opacity-100 transition-opacity flex gap-1";
+                        buttonWrapper.className = "absolute top-2 right-2 opacity-0 group-hover/file:opacity-100 transition-opacity flex gap-1";
 
                         if (body.senderId == myUserId) {
                             const deleteButton = document.createElement("button");
@@ -755,7 +783,50 @@ templ GroupPage(myUser *types.User, g *types.Group) {
             }
         }
 
+        function downloadFile(msgId, file) {
+            const a = document.createElement("a");
+            a.href = `http://${window.location.host}/api/messages/${file.messageId}/files/${file.id}/download`;
+            a.download = "";  // Browser will infer filename if server sets "Content-Disposition"
+            document.body.appendChild(a);
+            a.click();  // Trigger download
+            a.remove();
+        }
+
         scrollToBottom();
+
+        // Close all dropdowns
+        function closeAllDropdowns() {
+            document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                menu.classList.add('hidden');
+            });
+        }
+
+        // Add click event listeners to three-dot buttons
+        document.querySelectorAll('.three-dot-button').forEach(button => {
+            button.addEventListener('click', function (e) {
+                e.stopPropagation(); // Prevent click from bubbling to document
+
+                // Close all other dropdowns first
+                closeAllDropdowns();
+
+                // Toggle the dropdown for this button
+                const dropdown = this.nextElementSibling;
+                dropdown.classList.toggle('hidden');
+            });
+        });
+
+        // Add click event listeners to dropdown items
+        document.querySelectorAll('.dropdown-menu button').forEach(button => {
+            button.addEventListener('click', function (e) {
+                e.stopPropagation(); // Prevent click from bubbling
+                closeAllDropdowns();
+            });
+        });
+
+        // Close dropdowns when clicking elsewhere on the page
+        document.addEventListener('click', function () {
+            closeAllDropdowns();
+        });
     </script>
 	</div>
 }

@@ -105,6 +105,7 @@ func chatRouter(authenticatedApi *gin.RouterGroup, chatService *services.ChatSer
 
 	authenticatedApi.GET("/messages", chatHandler.GetChatList)
 	authenticatedApi.GET("/messages/:messageId/files/:fileId", chatHandler.FindFileInsideChat)
+	authenticatedApi.GET("/messages/:messageId/files/:fileId/download", chatHandler.DownloadFile)
 	authenticatedApi.GET("/messages/last/:username", chatHandler.SearchLastMessage)
 	authenticatedApi.POST("/messages", chatHandler.SendMsg)
 	authenticatedApi.DELETE("/messages/:messageId/files/:fileId", chatHandler.DeleteFileInsideChat)

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -148,6 +149,9 @@ func (ch *ChatHandler) SendMsg(c *gin.Context) {
 		} else {
 			wsMsg.Type = PEER_CHAT
 		}
+		slog.Info("send realtime chat",
+			"wsMsg", wsMsg,
+		)
 
 		ch.hub.Broadcast <- wsMsg
 	}()
@@ -172,6 +176,23 @@ func (ch *ChatHandler) FindFileInsideChat(c *gin.Context) {
 	c.Header("Content-Type", mimeType)
 	c.Status(http.StatusOK)
 	c.Writer.Write(file.Data)
+}
+
+func (ch *ChatHandler) DownloadFile(c *gin.Context) {
+	msgId := c.Param("messageId")
+	fileId := c.Param("fileId")
+	file, err := ch.chatService.FindFileInsideChat(c, msgId, fileId)
+	if err != nil {
+		slog.Error("Failed retrieve chat message")
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Failed retrieve chat data"})
+		return
+	}
+
+	c.Header("Content-Description", "Download File")
+	c.Header("Content-Disposition", "attachment; filename="+file.Name)
+	c.Header("Content-Length", fmt.Sprintf("%d", len(file.Data)))
+
+	c.Data(http.StatusOK, "application/octet-stream", file.Data)
 }
 
 func (ch *ChatHandler) DeleteFileInsideChat(c *gin.Context) {
