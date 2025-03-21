@@ -33,7 +33,7 @@ templ imagePreviewModal() {
 }
 
 templ imgLayout(msg types.Message, myUser *types.User, file types.File) {
-	<div id={ file.ID } class="relative group/image aspect-video overflow-hidden rounded-md cursor-pointer w-70 h-40 group">
+	<div id={ file.ID } class="relative aspect-video overflow-hidden rounded-md cursor-pointer w-70 h-40 group/file">
 		<img
 			src={ fmt.Sprintf("/api/messages/%s/files/%s", file.MessageID, file.ID) }
 			alt={ file.Name }
@@ -43,33 +43,38 @@ templ imgLayout(msg types.Message, myUser *types.User, file types.File) {
 		/>
 		<!-- Delete Button -->
 		if msg.SenderID == myUser.ID {
-			@deleteFileButton(msg.ReceiverID, msg.GroupID, file)
+			@menuFileButton(myUser, msg, file)
 		}
 	</div>
 }
 
-templ deleteFileButton(receiverID *string, groupID *string, file types.File) {
-	<div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-		<button
-			onClick={ templ.JSFuncCall("deleteFile", receiverID, groupID, file) }
-			class="cursor-pointer p-1 bg-red-500 hover:bg-red-600 rounded text-white"
-		>
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				width="16"
-				height="16"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-			>
-				<path d="M3 6h18"></path>
-				<path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-				<path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+templ menuFileButton(myUser *types.User, msg types.Message, file types.File) {
+	<!-- Three-dot menu that appears ONLY on hover -->
+	<div
+		class="absolute right-3 top-3 opacity-0 group-hover/file:opacity-100 transition-opacity duration-200 pointer-events-none group-hover/file:pointer-events-auto"
+	>
+		<button class="cursor-pointer p-1 rounded-full hover:bg-gray-200 three-dot-button">
+			<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+				<path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"></path>
 			</svg>
 		</button>
+		<!-- Dropdown menu (shown on click) -->
+		<div class="hidden absolute right-0 mt-1 w-36 rounded-md bg-white shadow-lg ring-1 ring-black/5 z-10 dropdown-menu">
+			<button
+				class="cursor-pointer rounded-md block w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left"
+				onClick={ templ.JSFuncCall("downloadFile", msg.ID, file) }
+			>
+				Download file
+			</button>
+			if msg.SenderID == myUser.ID {
+				<button
+					class="cursor-pointer rounded-md block w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-100 text-left"
+					onClick={ templ.JSFuncCall("deleteFile", msg.ReceiverID, msg.GroupID, file) }
+				>
+					Delete file
+				</button>
+			}
+		</div>
 	</div>
 }
 
@@ -143,16 +148,16 @@ templ ChatPage(myUser *types.User, receiver *types.User, msgs []types.Message) {
 		for _, msg := range msgs {
 			<div id={ msg.ID } class="flex gap-4 border-y-2 border-slate-200">
 				<div
-					if msg.SenderID !=receiver.ID {
-						class="flex flex-1 justify-end min-w-0"
+					if msg.SenderID==myUser.ID {
+						class="flex flex-1 justify-end min-w-0 group"
 					} else {
-						class="flex flex-1 justify-start min-w-0"
+						class="flex flex-1 justify-start min-w-0 group"
 					}
 				>
-					<div class="w-max text-white rounded-lg px-3 py-2 shadow-md relative max-w-3/4">
+					<div class="w-max text-white rounded-lg px-3 py-2 shadow-md relative max-w-[40%]">
 						<!-- Header -->
 						<div
-							if msg.SenderID !=receiver.ID {
+							if msg.SenderID==myUser.ID {
 								class="flex items-center flex-row-reverse gap-2 mb-1"
 							} else {
 								class="flex items-center gap-2 mb-1"
@@ -172,7 +177,7 @@ templ ChatPage(myUser *types.User, receiver *types.User, msgs []types.Message) {
 							</div>
 						}
 						if len(msg.Files) > 0 {
-							<div class="mt-2 grid grid-cols-2 gap-2 relative">
+							<div class="mt-2 grid grid-cols-2 gap-2 relative group/file">
 								for _, file := range msg.Files {
 									if strings.HasPrefix(file.Type, "image/") {
 										@imgLayout(msg, myUser, file)
@@ -180,12 +185,12 @@ templ ChatPage(myUser *types.User, receiver *types.User, msgs []types.Message) {
 										<!-- Tentukan ikon berdasarkan jenis file -->
 										<div
 											id={ file.ID }
-											if msg.SenderID !=receiver.ID {
+											if msg.SenderID==myUser.ID {
 												dir="rtl"
-												class="relative group/file rounded-md p-3 flex flex-col items-center justify-center gap-3 bg-gray-800 text-white w-70 h-40 group"
+												class="relative rounded-md p-3 flex flex-col items-center justify-center gap-3 bg-gray-800 text-white w-70 h-40"
 											} else {
 												dir="ltr"
-												class="relative group/file rounded-md p-3 flex flex-col items-center justify-center gap-3 bg-gray-800 text-white w-70 h-40 group"
+												class="relative rounded-md p-3 flex flex-col items-center justify-center gap-3 bg-gray-800 text-white w-70 h-40"
 											}
 										>
 											if strings.HasPrefix(file.Type, "video/") {
@@ -240,12 +245,39 @@ templ ChatPage(myUser *types.User, receiver *types.User, msgs []types.Message) {
 											}
 											<span dir="ltr" class="text-gray-300 truncate max-w-[220px]">{ file.Name }</span>
 											<!-- Delete Button -->
-											if msg.SenderID != receiver.ID {
-												@deleteFileButton(msg.ReceiverID, msg.GroupID, file)
-											}
+											@menuFileButton(myUser, msg, file)
 										</div>
 									}
 								}
+							</div>
+						}
+						<!-- Three-dot menu that appears ONLY on hover -->
+						if msg.SenderID == myUser.ID {
+							<div
+								class="absolute -left-7 top-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto"
+							>
+								<button class="p-1 rounded-full hover:bg-gray-200 three-dot-button cursor-pointer">
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										class="h-5 w-5 text-gray-500"
+										viewBox="0 0 20 20"
+										fill="currentColor"
+									>
+										<path
+											d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"
+										></path>
+									</svg>
+								</button>
+								<!-- Dropdown menu (shown on click) -->
+								<div
+									class="hidden absolute right-0 mt-1 w-36 rounded-md bg-white shadow-lg ring-1 ring-black/5 z-10 dropdown-menu"
+								>
+									<button
+										class="cursor-pointer block w-full rounded-md px-4 py-2 text-sm text-red-600 hover:bg-gray-100 text-left"
+									>
+										Delete message
+									</button>
+								</div>
 							</div>
 						}
 					</div>
@@ -403,7 +435,7 @@ templ ChatPage(myUser *types.User, receiver *types.User, msgs []types.Message) {
     function createFilePreview(file, index) {
         const isImage = file.type.startsWith('image/');
         const previewEl = document.createElement('div');
-        previewEl.className = 'relative rounded-md overflow-hidden group';
+        previewEl.className = 'relative rounded-md overflow-hidden group/file';
 
         // Create preview content based on file type
         if (isImage) {
@@ -432,7 +464,7 @@ templ ChatPage(myUser *types.User, receiver *types.User, msgs []types.Message) {
                         <polyline points="14 2 14 8 20 8"/>
                     </svg>
                 </div>
-                <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div class="absolute top-2 right-2 opacity-0 group-hover/file:opacity-100 transition-opacity">
                     <button onclick="removeFile(${index})" class="cursor-pointer p-1 bg-red-500 hover:bg-red-600 rounded text-white">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
@@ -449,7 +481,7 @@ templ ChatPage(myUser *types.User, receiver *types.User, msgs []types.Message) {
     // Fungsi tambahan untuk overlay informasi file dan tombol remove
     function getFileInfoOverlay(file, index) {
         return `
-        <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div class="absolute top-2 right-2 opacity-0 group-hover/file:opacity-100 transition-opacity">
             <button onclick="removeFile(${index})" class="cursor-pointer p-1 bg-red-500 hover:bg-red-600 rounded text-white">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
@@ -663,7 +695,7 @@ templ ChatPage(myUser *types.User, receiver *types.User, msgs []types.Message) {
         messageAlign.className = `flex flex-1 min-w-0 ${myUserId == body.senderId ? "justify-end" : "justify-start"}`;
 
         const messageBubble = document.createElement("div");
-        messageBubble.className = "w-max text-white rounded-lg px-3 py-2 shadow-md relative max-w-3/4";
+        messageBubble.className = "w-max text-white rounded-lg px-3 py-2 shadow-md relative max-w-[40%]";
 
         const header = document.createElement("div");
         if (body.senderId == myUserId) {
@@ -696,7 +728,7 @@ templ ChatPage(myUser *types.User, receiver *types.User, msgs []types.Message) {
             body.files.forEach(file => {
                 if (file.type.startsWith("image/")) {
                     const imageWrapper = document.createElement("div");
-                    imageWrapper.className = "relative group/image aspect-video bg-discord-light rounded-md max-w-70 max-h-40";
+                    imageWrapper.className = "relative group/file aspect-video bg-discord-light rounded-md max-w-70 max-h-40";
                     imageWrapper.id = file.id;
 
                     const image = document.createElement("img");
@@ -705,10 +737,10 @@ templ ChatPage(myUser *types.User, receiver *types.User, msgs []types.Message) {
                     image.className = "w-70 h-45 object-contain";
 
                     const overlay = document.createElement("div");
-                    overlay.className = "absolute inset-0 group-hover/image:bg-opacity-40 transition-all";
+                    overlay.className = "absolute inset-0 group-hover/file:bg-opacity-40 transition-all";
 
                     const buttonWrapper = document.createElement("div");
-                    buttonWrapper.className = "absolute top-2 right-2 opacity-0 group-hover/image:opacity-100 transition-opacity flex gap-1";
+                    buttonWrapper.className = "absolute top-2 right-2 opacity-0 group-hover/file:opacity-100 transition-opacity flex gap-1";
 
                     if (body.senderId == myUserId) {
                         const deleteButton = document.createElement("button");
@@ -802,6 +834,49 @@ templ ChatPage(myUser *types.User, receiver *types.User, msgs []types.Message) {
         }
     }
 
+    function downloadFile(msgId, file) {
+        const a = document.createElement("a");
+        a.href = `http://${window.location.host}/api/messages/${file.messageId}/files/${file.id}/download`;
+        a.download = "";  // Browser will infer filename if server sets "Content-Disposition"
+        document.body.appendChild(a);
+        a.click();  // Trigger download
+        a.remove();
+    }
+
     scrollToBottom();
+
+    // Close all dropdowns
+    function closeAllDropdowns() {
+        document.querySelectorAll('.dropdown-menu').forEach(menu => {
+            menu.classList.add('hidden');
+        });
+    }
+
+    // Add click event listeners to three-dot buttons
+    document.querySelectorAll('.three-dot-button').forEach(button => {
+        button.addEventListener('click', function (e) {
+            e.stopPropagation(); // Prevent click from bubbling to document
+
+            // Close all other dropdowns first
+            closeAllDropdowns();
+
+            // Toggle the dropdown for this button
+            const dropdown = this.nextElementSibling;
+            dropdown.classList.toggle('hidden');
+        });
+    });
+
+    // Add click event listeners to dropdown items
+    document.querySelectorAll('.dropdown-menu button').forEach(button => {
+        button.addEventListener('click', function (e) {
+            e.stopPropagation(); // Prevent click from bubbling
+            closeAllDropdowns();
+        });
+    });
+
+    // Close dropdowns when clicking elsewhere on the page
+    document.addEventListener('click', function () {
+        closeAllDropdowns();
+    });
 </script>
 }

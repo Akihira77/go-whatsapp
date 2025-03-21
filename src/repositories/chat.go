@@ -106,7 +106,6 @@ func (cr *ChatRepository) SearchChat(ctx context.Context, myUserId, groupName, u
             LEFT JOIN user_groups ON user_groups.group_id = messages.group_id
                 WHERE
                     ((users.first_name || ' ' || users.last_name) LIKE ? OR groups.name LIKE ?) AND
-                    messages.sender_id <> ? AND 
                     (messages.receiver_id = ? OR user_groups.user_id = ?)
                 GROUP BY users.id, groups.id
             UNION
